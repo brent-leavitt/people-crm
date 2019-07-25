@@ -1,0 +1,8 @@
+<form action="http://ppldev.childbirthlibrary.org/?email=drive" method="post">
+
+	<input type="hidden" name="campaign" value="" />
+	<input type="hidden" name="" value="" />
+	<input type="email" name="user_email" value="" />
+	<input type="submit" name="send_email" />
+
+</form>
