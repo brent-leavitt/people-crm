@@ -20,7 +20,7 @@ Action is the master class of all core classes.
 		
 */
 	
-namespace nn_network\core;
+namespace people_crm\core;
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
@@ -171,10 +171,12 @@ if( !class_exists( 'Action' ) ){
 			
 			//Data is set and is made uniform.
 			$data_set = new sub\Data( $data );
+			
 
-			if( $check = $data_set->valid )
+			if( $check = $data_set->valid ){
 				$this->data = $data_set->get();//Returns an array (not object)
-					
+				//dump( __LINE__, __METHOD__, $this->data );
+			}		
 			return $check;
 
 		}	

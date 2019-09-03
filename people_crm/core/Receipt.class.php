@@ -97,9 +97,10 @@ if( !class_exists( 'Receipt' ) ){
 				
 		
 		public function set_src_data(){
-			
-			$this->src_data = $this->data[ 'src_data' ];
-			unset($this->data[ 'src_data' ]);
+			dump( __LINE__, __METHOD__, $this->data );
+			$this->src_data = $this->data[ 'src_data' ]?? false;
+			if( $this->src_data !== false )
+				unset( $this->data[ 'src_data' ] );
 			//dump( __LINE__, __METHOD__, $this->src_data );
 		}	
 				

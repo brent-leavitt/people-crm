@@ -212,35 +212,38 @@ if( !class_exists( 'Data' ) ){
 			$action = $this->action;
 			
 			//What data set are we taking action on. 
-			$action_set = $this->action. '_set';
+			$action_set = $action. '_set';
 			
 			//load keys from that data set. 
 			$keys = $this->$action_set;
-			//dump( __LINE__, __METHOD__, $data );
+			//dump( __LINE__, __METHOD__, $data ); 
 			
 			//Now we start to build. 
 			foreach( $keys as $key ){
 				if( !empty( $data[ $key ] ) )
 					$this->data_set[ $key ] = $data[ $key ];
-				elseif( !empty( $data[ $action ] ) ){
+				elseif( !empty( $data[ 'data' ] ) ){
 					//looking deeper into the source arrays for data that matches the requesting field.
 		
 					//first check if field is available in top level of nested array. 
-					if( !empty( $data[ $action ][ $key ] ) ){
-						$this->data_set[ $key ] = $data[ $action ][ $key ];
+					if( !empty( $data[ 'data' ][ $key ] ) ){
+						$this->data_set[ $key ] = $data[ 'data' ][ $key ];
 						
 					} else {
 						
 						//else look deeper by referencing the first word of the key to find it's associated array.  
 						$pos = strpos( $key, '_'  );
 						$sub_arr = substr( $key, 0, $pos );
-						$sub_key = substr( $key, $pos+1 );
-						$sub_val = $data[ $action ][ $sub_arr ][ $sub_key ];
+						$sub_key = substr( $key, $pos );
+						$sub_val = $data[ 'data' ][ $sub_arr ][ $sub_key ] ?? '';
 
 						if( !empty( $sub_val ) )
 							$this->data_set[ $key ] = $sub_val;
 
 					}
+				} else {
+					$this->data_set[ $key ] = '';
+					
 				}
 			}	
 			//The final data set is specific to the initiating action being performed 

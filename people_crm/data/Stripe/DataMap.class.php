@@ -1,8 +1,8 @@
 <?php 
 
 /* 
-
-NNDataStripe Class for NBCS Network Plugin
+people_crm\data\Stripe\DataMap
+DataMap Class for NBCS Network Plugin
 Last Updated 19 Dec 2018
 -------------
 
@@ -11,12 +11,12 @@ Description:
 		
 */
 	
-namespace data\Stripe;
+namespace people_crm\data\Stripe;
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-if( !class_exists( 'NNDataStripe' ) ){
-	class NNDataStripe{
+if( !class_exists( 'DataMap' ) ){
+	class DataMap{
 
 	// PROPERTIES
 		public $in; 			//This is the source JSON string of info.
@@ -132,12 +132,14 @@ if( !class_exists( 'NNDataStripe' ) ){
 		Description: 
 	*/	
 		
+		/* 
 		public function get_action(){
 			
 			//$action = $this->data[ 'custom' ];
 			
 			return $this->get_meta( 'action' );
-		}		
+		}
+		*/
 				
 		
 	/*
@@ -183,7 +185,8 @@ if( !class_exists( 'NNDataStripe' ) ){
 			
 			//$token = $this->source->get_token();
 			
-			return $this->get_meta( 'token' );
+			return $this->get_meta( 'enrollment' ); //enrollment_token
+			
 		}		
 				
 		
@@ -192,9 +195,10 @@ if( !class_exists( 'NNDataStripe' ) ){
 		Description:
 	*/	
 		
-		public function get_meta( $value ){
+		public function get_meta( $value = '' ){
 			
-			$result = $this->data[ 'metadata' ][ $value ];
+			if( !empty( $this->data[ 'metadata' ][ $value ] ) )
+				$result = $this->data[ 'metadata' ][ $value ];
 			
 			return ( !empty( $result ) )? $result : false ;
 		}		
@@ -230,8 +234,8 @@ if( !class_exists( 'NNDataStripe' ) ){
 			//service_id, enrollment_type
 			
 			 $this->data[ 'metadata' ][ 'service' ] = $post['service_id'];
-			 $this->data[ 'metadata' ][ 'token' ] = $post['enrollment_type'];
-			 $this->data[ 'metadata' ][ 'action' ] = $post['action'];
+			 $this->data[ 'metadata' ][ 'enrollment' ] = $post['enrollment_type'];
+			 //$this->data[ 'metadata' ][ 'action' ] = $post['action'];
 			
 			
 		}	

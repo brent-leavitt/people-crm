@@ -204,9 +204,10 @@ if( !class_exists( 'PostData' ) ){
 			//Has this post already been inserted? 
 			//Setup to assess if post exists:
 			foreach( [ 'title', 'content', 'date' ] as $exists )
-				$$exists = $this->post_arr[ "post_$exists" ];
+				$$exists = ( $this->post_arr[ "post_$exists" ] ) ?? '';
 			
 			//Now we're checking if post exists. 
+			require_once ABSPATH . '/wp-admin/includes/post.php';
 			if( post_exists( $title, $content, $date ) === 0 ){//It doesn't exists
 			
 				//dump( __LINE__, __METHOD__, $this->post_arr );
@@ -463,9 +464,9 @@ if( !class_exists( 'PostData' ) ){
 			
 			//Check title 
 			if( empty( $this->post_arr[ 'post_title' ] ) ){
-				$trans = ucfirst( $this->data[ 'trans_type' ] );
-				$trans_id = ucfirst( $this->data[ 'tp_id' ] );
-				$tp = ucfirst( $this->data[ 'tp_name' ] );
+				$trans = ( $this->data[ 'trans_type' ] ) ?? '';
+				$trans_id = ( $this->data[ 'tp_id' ] ) ?? '';
+				$tp = ( $this->data[ 'tp_name' ] ) ?? '';
 				$patron = $this->patron;
 				
 				$this->post_arr[ 'post_title' ] = "$trans #$trans_id from $tp for Account #$patron";
