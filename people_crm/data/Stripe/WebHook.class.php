@@ -44,10 +44,10 @@ if( !class_exists( 'WebHook' ) ){
 				'patron' => 0,
 				'service' => '',
 				'token' => '',
-				'webhook_data' => array()
+				'data' => array()
 			);
 		
-		
+		public $test_data = '{"action":"invoice","patron":150,"service":"CBL","token":"library_month","data":{"object":{"id":"in_1FEfAFEY0jlqbLN4zp1vyrKr","object":"invoice","account_country":"US","account_name":"New Beginning Childbirth Services","amount_due":500,"amount_paid":500,"amount_remaining":0,"application_fee":null,"attempt_count":1,"attempted":true,"auto_advance":false,"billing":"charge_automatically","billing_reason":"subscription_update","charge":"ch_1FEfAGEY0jlqbLN4o3tYVfAg","closed":true,"collection_method":"charge_automatically","created":1567529251,"currency":"usd","custom_fields":null,"customer":"cus_Fk9THGCGDjgT3T","customer_address":null,"customer_email":"tu345@trainingdoulas.com","customer_name":null,"customer_phone":null,"customer_shipping":null,"customer_tax_exempt":"none","customer_tax_ids":[],"date":1567529251,"default_payment_method":null,"default_source":null,"default_tax_rates":[],"description":"","discount":null,"due_date":1570121252,"ending_balance":0,"finalized_at":1567529251,"footer":null,"forgiven":false,"hosted_invoice_url":"https:\/\/pay.stripe.com\/invoice\/invst_OhgQjxhIbj0qGgTabobdho0qIS","invoice_pdf":"https:\/\/pay.stripe.com\/invoice\/invst_OhgQjxhIbj0qGgTabobdho0qIS\/pdf","lines":{"object":"list","data":[{"id":"sli_56f06d3e3db5af","object":"line_item","amount":500,"currency":"usd","description":"1 subscription \u00d7 NB Childbirth Library (at $5.00 \/ month)","discountable":true,"livemode":false,"metadata":{"service":"CBL","enrollment":"library_month"},"period":{"end":1570121251,"start":1567529251},"plan":{"id":"plan_F6dP7S9MilOACx","object":"plan","active":true,"aggregate_usage":null,"amount":500,"amount_decimal":"500","billing_scheme":"per_unit","created":1558415029,"currency":"usd","interval":"month","interval_count":1,"livemode":false,"metadata":[],"nickname":"Childbirth Library Monthly Subscription","product":"prod_DXuvzA0BGIwaGm","tiers":null,"tiers_mode":null,"transform_usage":null,"trial_period_days":null,"usage_type":"licensed"},"proration":false,"quantity":1,"subscription":"sub_Fk9TzPmxD9uQX1","subscription_item":"si_Fk9TDWPvWpsLrH","tax_amounts":[],"tax_rates":[],"type":"subscription"}],"has_more":false,"total_count":1,"url":"\/v1\/invoices\/in_1FEfAFEY0jlqbLN4zp1vyrKr\/lines"},"livemode":false,"metadata":[],"next_payment_attempt":null,"number":"6975E678-0001","paid":true,"payment_intent":"pi_1FEfAGEY0jlqbLN43EiW0JAu","period_end":1567529251,"period_start":1567529251,"post_payment_credit_notes_amount":0,"pre_payment_credit_notes_amount":0,"receipt_number":null,"starting_balance":0,"statement_descriptor":null,"status":"paid","status_transitions":{"finalized_at":1567529251,"marked_uncollectible_at":null,"paid_at":1567529253,"voided_at":null},"subscription":"sub_Fk9TzPmxD9uQX1","subtotal":500,"tax":null,"tax_percent":null,"total":500,"total_tax_amounts":[],"webhooks_delivered_at":null}}}';
 			
 	// Methods
 	
@@ -103,39 +103,29 @@ if( !class_exists( 'WebHook' ) ){
 			if( !in_array( $eventType, $this->actionable_responses, true ) )
 				return false;
 				
-			switch( $eventType ) {
-				/* case 'charge_succeeded':
-						$action = 'receipt';
-					break; */
-					
-			/* 	case 'invoice_created': */
-				case 'invoice_payment_succeeded': 
-						$action = 'invoice';
-					break;
-					
-	
-				// ... handle other event types
-				default:
-					// Unexpected event type
-					
-					break;
-					
-					
-					/* http_response_code(400);
-					exit(); */
-			} 			
+		
+			// The phrase in the if statement sets the dataSet property in the class. 
+			if(  $this->$eventType( $event) ){
+				
+				dump( __LINE__, __METHOD__, $this->data_set );
+				
+				//FLAG: TEST DATA IN USE>>>
+				
+				
+				
+			}
+			//RETURN TO IF STATEMENT WHEN DONE TESTING. 
 			
-			$data =  $this->$eventType( $event );
+			$format = new Format( 'Stripe', json_decode( $this->test_data ), $this->data_set[ 'action' ] ); // contains the data from a Stripe event.
 			
-			//$format = new Format( 'Stripe', $data ); // contains the data from a Stripe event.
+			$format->set_format();
+		
+			$action = new Action( $format->out );
 			
-			//$format->set_format();
+			//RETURN TO IF STATEMENT WHEN DONE TESTING. 
 			
-			//$action = new Action( $format->out );
-			
-			
-			
-			$this->testEventResponse( $data, $eventType ); 
+			//We're just using test data right now for faster development. 
+			$this->testEventResponse( $action , $eventType ); 
 			 
 			
 			
@@ -170,7 +160,8 @@ if( !class_exists( 'WebHook' ) ){
 			
 			
 			
-			$post = json_encode( $evt ); 
+			//$post = json_encode( $evt ); 
+			$post = $evt;
 			
 			$timestamp = time();
 			// Gather post data.
@@ -184,9 +175,9 @@ if( !class_exists( 'WebHook' ) ){
 			);
 						
 			//wp_insert_post( $post_arr );
-			//wp_mail( 'brent@trainingdoulas.com', 'testEventResponse '. $type .' '.$timestamp , $post  );
+			wp_mail( 'brent@trainingdoulas.com', 'testEventResponse '. $type .' '.$timestamp , $post  );
 			
-			dump( __CLASS__, __METHOD__, $post );
+			//dump( __CLASS__, __METHOD__, $post );
 		}
 		
 		
@@ -197,12 +188,18 @@ if( !class_exists( 'WebHook' ) ){
 		
 		public function invoice_payment_succeeded( $event ){
 			
+			$result = true;
+			
+			//Five things needed: 1) Action, 2) Patron, 3) Service, 4)Enrollment, 5)webhook data
+			
+			$this->data_set[ 'action' ] = 'invoice';
+			
 			//What do we need from the payload?
 			// - patron_id
 			$patron_cus_number = $event->data->object->customer;
 			$patron_cus_email = $event->data->object->customer_email;
 			
-			$patron_id =  get_user_by_meta( 'stripe_customer_id', $patron_cus_number);
+			$patron_id =  get_user_id_by_meta( 'stripe_customer_id', $patron_cus_number);
 			
 			if( empty( $patron_id ) ){
 				$patron = get_user_by( 'email', $patron_cus_email );
@@ -210,54 +207,30 @@ if( !class_exists( 'WebHook' ) ){
 			}
 		
 			if( empty( $patron_id ) )
-				$patron_id =  get_user_by_meta( 'stripe_customer_email', $patron_cus_email );
+				$patron_id =  get_user_id_by_meta( 'stripe_customer_email', $patron_cus_email );
+			
+			$this->data_set[ 'patron' ] = $patron_id ?? 0;
+			
 			
 			//Service and Enrollment Tokens
 			$metadata = $event->data->object->lines->data[0]->metadata;
 			
-			$enrollment_token = $metadata->enrollment;
-			$service_id = $metadata->service;
+			$this->data_set[ 'token' ] = $metadata->enrollment;
+			$this->data_set[ 'service' ] = $metadata->service;
 			
 			//Remainder of the data: 
-			$data = $event->data;
+			$this->data_set[ 'data' ]  = $event->data;
 
-			/* dump( __LINE__, __METHOD__, $metadata );
-			var_dump( $metadata );
-			// - enrollment_token */
+			//dump( __LINE__, __METHOD__, $this->data_set );
 			
-			//Single out Stripe Cus ID and Email
-			
-			//Pull out non-empty meta data. 
-			
-			ECHO "Patron ID: $patron_id";
-			echo "\n\r";
-			ECHO "SERVICE ID: $servie_id";
-			echo "\n\r";
-			ECHO "Enrollment TOKEN: $enrollment_token";
+			foreach( $this->data_set as $val ){
+				if( empty( $val ) ){
+					$result = false;
+					break;
+				}
+			}	
 				
-				
-			return $event;			
-		}
-		
-		
-		
-		
-		
-			
-		
-	/*
-		Name: get_user_by_meta
-		Description:  returns a user ID for a matched key/value meta set. 
-	*/	
-		
-		public function get_user_by_meta( $key, $val ){
-			
-			$result = get_users( array('meta_key' => $key, 'meta_value' => $val ) );
-			
-			$patron_id = $result[0]->ID;
-			
-			return $patron_id ?? NULL; 
-			
+			return $result;			
 		}
 				
 	/*
