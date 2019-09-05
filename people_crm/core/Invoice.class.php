@@ -38,11 +38,7 @@ if( !class_exists( 'Invoice' ) ){
 			$amount_due,
 			$amount_remaining,
 			$paid, //true or false
-			$receipt_id,
-			$,
-			$,
-			$,
-			$;
+			$receipt_id;
 		//Methods
 		
 		

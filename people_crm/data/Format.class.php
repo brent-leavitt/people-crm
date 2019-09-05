@@ -27,10 +27,13 @@ if( !class_exists( 'Format' ) ){
 		
 		// 
 		//public $data;
-		public $action; 						//Action to be set. 
+		//public $action; 						//Action to be set. 
 		public $in;								//Incoming Data String
 		public $out; 							//Outgoing Data Array
-		public $source;						//The Source Class: Stripe, PayPal, Default. 
+		
+		//EXTRA FORMATTING MAY BE NEEDED TO PROCESS INComing dATA. 
+		public $source;							//(string) The source: Stripe, PayPal, Default. 
+		public $data_map;						//(array) Mapped Variables from source to output. 
 		
 		public $output_format = array(
 			'action' => '',						//Primary Action 
@@ -138,32 +141,28 @@ if( !class_exists( 'Format' ) ){
 		
 		private function init( $data, $source, $action ){
 			
+			//Recieve the data to be formatted from external sources. 
 			$this->in = $data;
-			$this->set_source( $source );
+			
+			//Core action to be taken on incoming data. 
 			$this->action = $action;
+			
+			//Set source of data, this also connects the data map to be used. 
+			if( $this->set_source( $source ) )
+				$this->do_formatting();//Once all key values are in place, let's format the data. 
+			
+			
+			
+			
+			dump( __LINE__, __METHOD__, $this );
 		}
-	
-	
-	/*
-		Name: set_format
-		Description: 
-	*/	
-		
-		public function set_format(){
-			
-			
-			$this->do_formatting();
-			
-			//final output is $out array. 	
-			return $this->out ?? false; 
-			
-		}
+
 		
 		
 
 	/*
 		Name: set_source
-		Description: This sets the source of the data. 
+		Description: This sets the source of the data, and imports the correct datamap.
 	*/	
 		
 		public function set_source( $source ){
@@ -171,22 +170,27 @@ if( !class_exists( 'Format' ) ){
 			//We may want to set some security checks. 
 			
 			//Set Source Name Property
-			if( !empty( $source ) ){
 				
 				
 				//All Source Class Names will be formated with first letter cap, all else lower case: ex. Paypal. 
 				$source = ucfirst( strtolower( $source ) );
 				
+				
 				$src_class = 'people_crm\\data\\'.$source.'\\DataMap';
-				$this->source = new $src_class( $this->in );
+				$src = new $src_class( [] );
+				
+				//set source string.
+				$this->source = $source;
+				$this->data_map = $src->get_data_map();
+				
 				
 				//dump( __LINE__, __METHOD__, $this->source );
 				/* //Convert incoming data to an array. This will vary according on where the data is coming from. 
 				$this->data = $this->source->to_array(); */	
-				return true;
-			}
 			
-			return false;
+			//if not empty, then true. 
+			return  ( !empty( $this->source ) && !empty( $this->data_map ) )? true : false;
+			
 		}
 		
 	/*
@@ -197,12 +201,11 @@ if( !class_exists( 'Format' ) ){
 		private function do_formatting(){
 			
 			
-			//source data in array format
-			$data = $this->source->data;
+			//source data in array format. Why is this coming from here, and not from $this->in. 
+			$data = $this->flatten( $this->in );
 						
 			//data_map for source type: paypal, stripe, etc. 
-			if( is_object( $this->source ) )			
-				$data_map = $this->source->get_data_map();
+			$data_map = $this->data_map;
 			
 			//the starting point for the final output, a template from $output_format
 			$output = $this->output_format;
@@ -217,7 +220,7 @@ if( !class_exists( 'Format' ) ){
 			//Map data from source to final format
 			$output = $this->do_mapping( $output, $data_map, $data );
 			
-			//dump( __LINE__, __METHOD__, $output );
+			//dump( __LINE__, __METHOD__, $data );
 
 			//Then remove empty fields from the output array. 
 			//$output = $this->clean( $output );
@@ -228,7 +231,7 @@ if( !class_exists( 'Format' ) ){
 				//Is there enough incoming data to do something with? 
 			
 			//if( $this->integrity( $output ) )
-				$this->out = $output;
+			$this->out = $output;
 			
 			
 		}
@@ -265,12 +268,13 @@ if( !class_exists( 'Format' ) ){
 			foreach( $output as $o_key => $o_val ){
 
 				//generate potential method name.
-				$set_key = 'set_'. $o_key; 
-				//dump( __LINE__, __METHOD__, $set_key );
+				$set_method = 'set_'. $o_key; 
+				
 				//look for method by $o_key name; 
-				if( method_exists( $this, $set_key ) ){ 
-					$output[ $o_key ] = $this->$set_key();
+				if( method_exists( $this, $set_method ) ){ 
+					$output[ $o_key ] = $this->$set_method();
 					
+					//dump( __LINE__, __METHOD__, $o_key );
 					//dump( __LINE__, __METHOD__, $output[ $o_key ] );
 					continue;
 				}
@@ -285,6 +289,7 @@ if( !class_exists( 'Format' ) ){
 				if( isset( $data_map[ $o_key ] ) ){		
 					if( ( $found = $this->find_in_source( $data_map[ $o_key ], $data ) ) !== false ){
 						$output[ $o_key ] = $found;
+						//dump( __LINE__, __METHOD__, $o_key );
 						//dump( __LINE__, __METHOD__, $output[ $o_key ] );
 					}
 				} 
@@ -330,16 +335,16 @@ if( !class_exists( 'Format' ) ){
 		public function set_patron(){
 			//INCOMPLETE, not sure what else we need to add here. 
 			
-			$p_value = $this->source->get_patron();
+			$patron = $this->in->patron;
 			
-			$patron_id = nn_crypt( $p_value, 'd' );
+			/* $patron_id = nn_crypt( $p_value, 'd' );
 			
 			//Check if user exists? 
-			$patron = get_user_by( 'id', $patron_id );
+			$patron = get_user_by( 'id', $patron_id ); */
 			
 			//what is the payee email? 
 				
-			return ( is_object( $patron ) )? $patron_id : -1 ;
+			return ( is_numeric( $patron ) )? $patron : -1 ;
 		}		
 				
 		
@@ -350,7 +355,7 @@ if( !class_exists( 'Format' ) ){
 		
 		public function set_service(){
 			
-			$service = $this->source->get_service();
+			$service = $this->in->service;
 			
 			
 			return $service;
@@ -364,9 +369,9 @@ if( !class_exists( 'Format' ) ){
 		
 		public function set_token(){
 			
-			$token = $this->source->get_token();
+			$token = $this->in->token;
 			
-			return $token;
+			return ( $token )?? null;
 		}		
 	
 
@@ -409,13 +414,13 @@ if( !class_exists( 'Format' ) ){
 			
 			$result = '';
 			//If this doesn't return a result. pop off the first word, and look deeper. 
-			if( empty( $result = isset( $data[ $key ] )? $data[ $key ] : '' ) ){
+			if( empty( $result = isset( $data->$key )? $data->$key : '' ) ){
 				$pos = strpos( $key, '_' );
 				$key_one = substr( $key, 0, $pos  );
 				$key_two = substr( $key, $pos + 1 );
-				$result = isset( $data[ $key_one ][ $key_two ] )? $data[ $key_one ][ $key_two ] : '' ;
+				$result = isset( $data->$key_one->$key_two )? $data->$key_one->$key_two : '' ;
 			} 
-			return ( !empty( $result ) )? $result : false ; 
+			return ( $result ) ?? false ; 
 		}	
 
 		
@@ -450,6 +455,23 @@ if( !class_exists( 'Format' ) ){
 			$this->source->add_post_data( $post );
 		}
 		
+	
+	/*
+		Name: set_format (deprecate?)
+		Description: 
+	*/	
+		
+		public function do_format(){
+			
+			
+			$this->do_formatting();
+			
+			//final output is $out array. 	
+			return $this->out ?? false; 
+			
+		}	
+		
+
 		
 	/*
 		Name: 

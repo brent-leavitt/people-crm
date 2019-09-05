@@ -24,6 +24,8 @@ if( !class_exists( 'WebHook' ) ){
 
 	// PROPERTIES
 			
+			
+			
 		public $actionable_responses = array(
 			'charge_succeeded',
 			'charge_refunded',
@@ -107,7 +109,7 @@ if( !class_exists( 'WebHook' ) ){
 			// The phrase in the if statement sets the dataSet property in the class. 
 			if(  $this->$eventType( $event) ){
 				
-				dump( __LINE__, __METHOD__, $this->data_set );
+				//dump( __LINE__, __METHOD__, $this->data_set );
 				
 				//FLAG: TEST DATA IN USE>>>
 				
@@ -116,11 +118,14 @@ if( !class_exists( 'WebHook' ) ){
 			}
 			//RETURN TO IF STATEMENT WHEN DONE TESTING. 
 			
-			$format = new Format( 'Stripe', json_decode( $this->test_data ), $this->data_set[ 'action' ] ); // contains the data from a Stripe event.
 			
-			$format->set_format();
+			
+			$format = new Format( json_decode( $this->test_data ), 'Stripe', $this->data_set[ 'action' ] ); // contains the data from a Stripe event.
+			
+			//Should this happen by default?
+			//$format->set_format();
 		
-			$action = new Action( $format->out );
+			//$action = new Action( $format->out );
 			
 			//RETURN TO IF STATEMENT WHEN DONE TESTING. 
 			
@@ -160,8 +165,8 @@ if( !class_exists( 'WebHook' ) ){
 			
 			
 			
-			//$post = json_encode( $evt ); 
-			$post = $evt;
+			$post = json_encode( $evt ); 
+			//$post = $evt;
 			
 			$timestamp = time();
 			// Gather post data.
