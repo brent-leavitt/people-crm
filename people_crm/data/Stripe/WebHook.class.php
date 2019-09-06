@@ -24,30 +24,23 @@ if( !class_exists( 'WebHook' ) ){
 
 	// PROPERTIES
 			
-			
+		public $action = 'record'; //Default is to at least make a record. 
 			
 		public $actionable_responses = array(
-			'charge_succeeded',
-			'charge_refunded',
-			'charge_expired',
-			'charge_failed',
-			'customer_subscription_created',
-			'customer_subscription_deleted',
-			'customer_subscription_updated',
-			'invoice_created',
-			'invoice_payment_succeeded',
-			'source_failed',
-			//'',
-			//'',
+			'charge_succeeded' 				=> 'receipt',
+			'charge_refunded' 				=> 'receipt',
+			'charge_expired' 				=> 'receipt',
+			'charge_failed'					=> 'receipt',
+			'customer_subscription_created' => 'enrollment',
+			'customer_subscription_deleted' => 'enrollment',
+			'customer_subscription_updated' => 'enrollment',
+			'invoice_created' 				=> 'invoice',
+			'invoice_payment_succeeded' 	=> 'invoice',
+			'source_failed' 				=> 'enrollment',
+			
 		);
 		
-		public $data_set = array(
-				'action' => '',
-				'patron' => 0,
-				'service' => '',
-				'token' => '',
-				'data' => array()
-			);
+		
 		
 		public $test_data = '{"action":"invoice","patron":150,"service":"CBL","token":"library_month","data":{"object":{"id":"in_1FEfAFEY0jlqbLN4zp1vyrKr","object":"invoice","account_country":"US","account_name":"New Beginning Childbirth Services","amount_due":500,"amount_paid":500,"amount_remaining":0,"application_fee":null,"attempt_count":1,"attempted":true,"auto_advance":false,"billing":"charge_automatically","billing_reason":"subscription_update","charge":"ch_1FEfAGEY0jlqbLN4o3tYVfAg","closed":true,"collection_method":"charge_automatically","created":1567529251,"currency":"usd","custom_fields":null,"customer":"cus_Fk9THGCGDjgT3T","customer_address":null,"customer_email":"tu345@trainingdoulas.com","customer_name":null,"customer_phone":null,"customer_shipping":null,"customer_tax_exempt":"none","customer_tax_ids":[],"date":1567529251,"default_payment_method":null,"default_source":null,"default_tax_rates":[],"description":"","discount":null,"due_date":1570121252,"ending_balance":0,"finalized_at":1567529251,"footer":null,"forgiven":false,"hosted_invoice_url":"https:\/\/pay.stripe.com\/invoice\/invst_OhgQjxhIbj0qGgTabobdho0qIS","invoice_pdf":"https:\/\/pay.stripe.com\/invoice\/invst_OhgQjxhIbj0qGgTabobdho0qIS\/pdf","lines":{"object":"list","data":[{"id":"sli_56f06d3e3db5af","object":"line_item","amount":500,"currency":"usd","description":"1 subscription \u00d7 NB Childbirth Library (at $5.00 \/ month)","discountable":true,"livemode":false,"metadata":{"service":"CBL","enrollment":"library_month"},"period":{"end":1570121251,"start":1567529251},"plan":{"id":"plan_F6dP7S9MilOACx","object":"plan","active":true,"aggregate_usage":null,"amount":500,"amount_decimal":"500","billing_scheme":"per_unit","created":1558415029,"currency":"usd","interval":"month","interval_count":1,"livemode":false,"metadata":[],"nickname":"Childbirth Library Monthly Subscription","product":"prod_DXuvzA0BGIwaGm","tiers":null,"tiers_mode":null,"transform_usage":null,"trial_period_days":null,"usage_type":"licensed"},"proration":false,"quantity":1,"subscription":"sub_Fk9TzPmxD9uQX1","subscription_item":"si_Fk9TDWPvWpsLrH","tax_amounts":[],"tax_rates":[],"type":"subscription"}],"has_more":false,"total_count":1,"url":"\/v1\/invoices\/in_1FEfAFEY0jlqbLN4zp1vyrKr\/lines"},"livemode":false,"metadata":[],"next_payment_attempt":null,"number":"6975E678-0001","paid":true,"payment_intent":"pi_1FEfAGEY0jlqbLN43EiW0JAu","period_end":1567529251,"period_start":1567529251,"post_payment_credit_notes_amount":0,"pre_payment_credit_notes_amount":0,"receipt_number":null,"starting_balance":0,"statement_descriptor":null,"status":"paid","status_transitions":{"finalized_at":1567529251,"marked_uncollectible_at":null,"paid_at":1567529253,"voided_at":null},"subscription":"sub_Fk9TzPmxD9uQX1","subtotal":500,"tax":null,"tax_percent":null,"total":500,"total_tax_amounts":[],"webhooks_delivered_at":null}}}';
 			
@@ -78,6 +71,9 @@ if( !class_exists( 'WebHook' ) ){
 			//$post =  = json_decode( $input );
 			
 			$payload = @file_get_contents('php://input');
+			
+			if( !$payload )	die( 'Hmm... Are \'ya lost?' );
+			
 			$event = null;
 			
 			// $post = json_encode( $_REQUEST );
@@ -102,25 +98,14 @@ if( !class_exists( 'WebHook' ) ){
 			//Full list of all possible events to act upon!
 			// Handle the event
 			
-			if( !in_array( $eventType, $this->actionable_responses, true ) )
+			if( !array_key_exists( $eventType, $this->actionable_responses ) || empty( $event->data ) )
 				return false;
 				
-		
-			// The phrase in the if statement sets the dataSet property in the class. 
-			if(  $this->$eventType( $event) ){
-				
-				//dump( __LINE__, __METHOD__, $this->data_set );
-				
-				//FLAG: TEST DATA IN USE>>>
-				
-				
-				
-			}
-			//RETURN TO IF STATEMENT WHEN DONE TESTING. 
+			//Set primary action
+			$this->action = $this->actionable_responses[ $eventType ];
 			
 			
-			
-			$format = new Format( json_decode( $this->test_data ), 'Stripe', $this->data_set[ 'action' ] ); // contains the data from a Stripe event.
+			$format = new Format( $event->data, 'Stripe', $this->action ); // contains the data from a Stripe event.
 			
 			//Should this happen by default?
 			//$format->set_format();
@@ -130,7 +115,7 @@ if( !class_exists( 'WebHook' ) ){
 			//RETURN TO IF STATEMENT WHEN DONE TESTING. 
 			
 			//We're just using test data right now for faster development. 
-			$this->testEventResponse( $action , $eventType ); 
+			$this->testEventResponse( $format, $this->action ); 
 			 
 			
 			
@@ -153,42 +138,10 @@ if( !class_exists( 'WebHook' ) ){
 			
 		}
 				
-	
+
 	/*
-		Name: testEventResponse
-		Description: 
-		Params:  $evt = obj
-				 $type = string
-	*/	
-		
-		public function testEventResponse( $evt, $type ){
-			
-			
-			
-			$post = json_encode( $evt ); 
-			//$post = $evt;
-			
-			$timestamp = time();
-			// Gather post data.
-			$post_arr = array(
-				'post_title'    => $type .' '. $timestamp,
-				'post_content'  => 'This post was create at '. $timestamp .' 
-				Incoming Data is:'. $post,
-				'post_status'   => 'published',
-				'post_type' 	=> 'nn_receipt',
-				'post_author'   => 1
-			);
-						
-			//wp_insert_post( $post_arr );
-			wp_mail( 'brent@trainingdoulas.com', 'testEventResponse '. $type .' '.$timestamp , $post  );
-			
-			//dump( __CLASS__, __METHOD__, $post );
-		}
-		
-		
-	/*
-		Name: invoice_payment_succeeded
-		Description: This will extract data from the specific event and prepare it for use in the system. 
+		Name: invoice_payment_succeeded (deprecated)
+		Description: This will set  
 	*/	
 		
 		public function invoice_payment_succeeded( $event ){
@@ -237,7 +190,30 @@ if( !class_exists( 'WebHook' ) ){
 				
 			return $result;			
 		}
-				
+		
+	/*
+		Name: testEventResponse
+		Description: 
+		Params:  $evt = obj
+				 $type = string
+	*/	
+		
+		public function testEventResponse( $evt, $type ){
+			
+			
+			
+			$post = json_encode( $evt ); 
+			//$post = $evt;
+			
+			$timestamp = time();
+			// Gather post data.
+			
+			wp_mail( 'brent@trainingdoulas.com', 'testEventResponse '. $type .' '.$timestamp , $post  );
+			
+			//dump( __CLASS__, __METHOD__, $post );
+		}
+		
+					
 	/*
 		Name: 
 		Description: 

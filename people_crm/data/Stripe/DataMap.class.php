@@ -41,6 +41,14 @@ if( !class_exists( 'DataMap' ) ){
 		public $in; 			//This is the source JSON string of info.
 		public $data = [];		//This is the converted array of incoming JSON data. 
 		
+		public $data_set = array(
+				'action' => '',
+				'patron' => 0,
+				'service' => '',
+				'token' => '',
+				'data' => array()
+			);
+		
 		
 		private $objects_arr = [
 			'charge',
@@ -56,28 +64,28 @@ if( !class_exists( 'DataMap' ) ){
 		
 		//https://stripe.com/docs/api/charges/object
 		private $charge_data_map = [ //'nn_value' => '3rd_party_value'
-			'create_date' => 'created',
-			'trans_type' => 'object',
-			'trans_status' => 'status',
+			'create_date' 	=> 'created',
+			'trans_type' 	=> 'object',
+			'trans_status' 	=> 'status',
 			'trans_descrip' => 'description',
-			'currency' => 'currency',
-/* 			'subtotal' => '',		 		//Subtotal before taxes
-			'discount' => '',		 		//Discount on Subtotal
-			'sales_tax' => '',		 		//Sales Tax */
-			'gross_amount' => 'amount', 			//Transaction Gross Amount
-/* 			'trans_fee' => '',  	 		//Transaction Fee
-			'net_amount' => '',		 		//Amount Collected After Fees */
-			'tp_id' => 'id', 		
-			'full_name' => 'billing_details_name',			//
-			'address' => 'billing_details_address_line1',	//	
-			'address1' => 'billing_details_address_line2',	//	
-			'city' => 'billing_details_address_city',		//	
-			'state' => 'billing_details_address_state',		//	
-			'zip' => 'billing_details_address_zip',			//	
-			'country' => 'billing_details_country',			//	
-			'email' => 'billing_details_email',				//	
-			'phone' => 'billing_details_phone',			//	
-			'on_behalf_of' => 'on_behalf_of',	
+			'currency' 		=> 'currency',
+/* 			'subtotal' 		=> '',		 		//Subtotal before taxes
+			'discount' 		=> '',		 		//Discount on Subtotal
+			'sales_tax' 	=> '',		 		//Sales Tax */
+			'gross_amount' 	=> 'amount', 			//Transaction Gross Amount
+/* 			'trans_fee'		=> '',  	 		//Transaction Fee
+			'net_amount' 	=> '',		 		//Amount Collected After Fees */
+			'tp_id' 		=> 'id', 		
+			'full_name' 	=> 'billing_details_name',			//
+			'address' 		=> 'billing_details_address_line1',	//	
+			'address1' 		=> 'billing_details_address_line2',	//	
+			'city' 			=> 'billing_details_address_city',		//	
+			'state' 		=> 'billing_details_address_state',		//	
+			'zip' 			=> 'billing_details_address_zip',			//	
+			'country' 		=> 'billing_details_country',			//	
+			'email' 		=> 'billing_details_email',				//	
+			'phone' 		=> 'billing_details_phone',			//	
+			'on_behalf_of' 	=> 'on_behalf_of',	
 			'stripe_customer_id' => 'customer',
 			
 			//email_address 	
@@ -106,212 +114,78 @@ if( !class_exists( 'DataMap' ) ){
 		];
 
 		
-		//INCOMPLETE 
-		
 		//https://stripe.com/docs/api/invoices
 		private $invoice_data_map = [ //'nn_value' => '3rd_party_value'
-			'create_date' => 'created',
-			'trans_type' => 'object',
-			'trans_status' => 'status',
-			'trans_descrip' => 'description',
-			'currency' => 'currency',
-/* 			'subtotal' => '',		 		//Subtotal before taxes
-			'discount' => '',		 		//Discount on Subtotal
-			'sales_tax' => '',		 		//Sales Tax */
-			'gross_amount' => 'amount', 			//Transaction Gross Amount
-/* 			'trans_fee' => '',  	 		//Transaction Fee
-			'net_amount' => '',		 		//Amount Collected After Fees */
-			'tp_id' => 'id', 		
-			'full_name' => 'source_name',			//
-			'address' => 'source_address_line1',	//	
-			'address1' => 'source_address_line2',	//	
-			'city' => 'source_address_city',		//	
-			'state' => 'source_address_state',		//	
-			'zip' => 'source_address_zip',			//	
-			'country' => 'source_country',			//	
-			'email' => 'receipt_email',				//	
-			'phone' => 'receipt_number',			//	
-			'cc_type' => 'source_brand',			//paypal, visa, mastercard, etc. 
-			'cc_card' => 'source_last4',			//last4 of 
-			'cc_exp_month' => 'source_exp_month',	//expiration date. 
-			'cc_exp_year' => 'source_exp_year',		//expiration date. 
-			'on_behalf_of' => 'on_behalf_of',		//email_address 	
+			'invoice_id' => 'id', //
+			'create_date' 	=> 'created',
+			'currency' 		=> 'currency',
+			'trans_status' 	=> 'status', // draft, open, paid, uncollectible, or void
+			'invoice_paid' => 'paid',
+			'gross_amount' 	=> 'amount_paid', //Invoice Gross Amount			//
+			'full_name' 	=> 'customer_name',	//	
+			'address' 		=> 'customer_address_line1',	//	
+			'address1' 		=> 'customer_address_line2',	//	
+			'city' 			=> 'customer_address_city',		//	
+			'state' 		=> 'customer_address_state',		//	
+			'zip' 			=> 'customer_address_postal_code',			//	
+			'country' 		=> 'customer_adddres_country',			//	
+			'email' 		=> 'customer_email',				//	
+			'phone' 		=> 'customer_phone',			//	
+			'stripe_customer_id' => 'customer',
 			
+			'' => '', //
+			'' => '', //
 		
 		];
-
-		
-		//INCOMPLETE
 		
 		//https://stripe.com/docs/api/subscription/object
 		private $subscription_data_map = [ //'nn_value' => '3rd_party_value'
-			'create_date' => 'created',
-			'trans_type' => 'object',
-			'trans_status' => 'status',
-			'trans_descrip' => 'description',
-			'currency' => 'currency',
-/* 			'subtotal' => '',		 		//Subtotal before taxes
-			'discount' => '',		 		//Discount on Subtotal
-			'sales_tax' => '',		 		//Sales Tax */
-			'gross_amount' => 'amount', 			//Transaction Gross Amount
-/* 			'trans_fee' => '',  	 		//Transaction Fee
-			'net_amount' => '',		 		//Amount Collected After Fees */
-			'tp_id' => 'id', 		
-			'full_name' => 'source_name',			//
-			'address' => 'source_address_line1',	//	
-			'address1' => 'source_address_line2',	//	
-			'city' => 'source_address_city',		//	
-			'state' => 'source_address_state',		//	
-			'zip' => 'source_address_zip',			//	
-			'country' => 'source_country',			//	
-			'email' => 'receipt_email',				//	
-			'phone' => 'receipt_number',			//	
-			'cc_type' => 'source_brand',			//paypal, visa, mastercard, etc. 
-			'cc_card' => 'source_last4',			//last4 of 
-			'cc_exp_month' => 'source_exp_month',	//expiration date. 
-			'cc_exp_year' => 'source_exp_year',		//expiration date. 
-			'on_behalf_of' => 'on_behalf_of',		//email_address 	
+			'subscription_id' => 'id', //
+			'subscription_status' => 'status', //
+			'' => '', //
 			
 		
 		];
-		
-
-//INCOMPLETE
-		
+				
 		//https://stripe.com/docs/api/subscription_item/object
 		private $subscription_item_data_map = [ //'nn_value' => '3rd_party_value'
-			'create_date' => 'created',
-			'trans_type' => 'object',
-			'trans_status' => 'status',
-			'trans_descrip' => 'description',
-			'currency' => 'currency',
-/* 			'subtotal' => '',		 		//Subtotal before taxes
-			'discount' => '',		 		//Discount on Subtotal
-			'sales_tax' => '',		 		//Sales Tax */
-			'gross_amount' => 'amount', 			//Transaction Gross Amount
-/* 			'trans_fee' => '',  	 		//Transaction Fee
-			'net_amount' => '',		 		//Amount Collected After Fees */
-			'tp_id' => 'id', 		
-			'full_name' => 'source_name',			//
-			'address' => 'source_address_line1',	//	
-			'address1' => 'source_address_line2',	//	
-			'city' => 'source_address_city',		//	
-			'state' => 'source_address_state',		//	
-			'zip' => 'source_address_zip',			//	
-			'country' => 'source_country',			//	
-			'email' => 'receipt_email',				//	
-			'phone' => 'receipt_number',			//	
-			'cc_type' => 'source_brand',			//paypal, visa, mastercard, etc. 
-			'cc_card' => 'source_last4',			//last4 of 
-			'cc_exp_month' => 'source_exp_month',	//expiration date. 
-			'cc_exp_year' => 'source_exp_year',		//expiration date. 
-			'on_behalf_of' => 'on_behalf_of',		//email_address 	
+			'subscription_item_id' => 'id', //
+			'subscription_plan' => 'plan', //
+			'' => '', //
 			
 		
 		];
 
-
-//INCOMPLETE		
 		
 		//https://stripe.com/docs/api/plan/object
 		private $plan_data_map = [ //'nn_value' => '3rd_party_value'
-			'create_date' => 'created',
-			'trans_type' => 'object',
-			'trans_status' => 'status',
-			'trans_descrip' => 'description',
-			'currency' => 'currency',
-/* 			'subtotal' => '',		 		//Subtotal before taxes
-			'discount' => '',		 		//Discount on Subtotal
-			'sales_tax' => '',		 		//Sales Tax */
-			'gross_amount' => 'amount', 			//Transaction Gross Amount
-/* 			'trans_fee' => '',  	 		//Transaction Fee
-			'net_amount' => '',		 		//Amount Collected After Fees */
-			'tp_id' => 'id', 		
-			'full_name' => 'source_name',			//
-			'address' => 'source_address_line1',	//	
-			'address1' => 'source_address_line2',	//	
-			'city' => 'source_address_city',		//	
-			'state' => 'source_address_state',		//	
-			'zip' => 'source_address_zip',			//	
-			'country' => 'source_country',			//	
-			'email' => 'receipt_email',				//	
-			'phone' => 'receipt_number',			//	
-			'cc_type' => 'source_brand',			//paypal, visa, mastercard, etc. 
-			'cc_card' => 'source_last4',			//last4 of 
-			'cc_exp_month' => 'source_exp_month',	//expiration date. 
-			'cc_exp_year' => 'source_exp_year',		//expiration date. 
-			'on_behalf_of' => 'on_behalf_of',		//email_address 	
+			'subscription_plan_id'	=> 'id', //		
+			''	=> '', //		
 			
 		
 		];
 		
-
-//INCOMPLETE
 		
 		//https://stripe.com/docs/api/card/object
-		private $card_data_map = [ //'nn_value' => '3rd_party_value'
-			'create_date' => 'created',
-			'trans_type' => 'object',
-			'trans_status' => 'status',
-			'trans_descrip' => 'description',
-			'currency' => 'currency',
-/* 			'subtotal' => '',		 		//Subtotal before taxes
-			'discount' => '',		 		//Discount on Subtotal
-			'sales_tax' => '',		 		//Sales Tax */
-			'gross_amount' => 'amount', 			//Transaction Gross Amount
-/* 			'trans_fee' => '',  	 		//Transaction Fee
-			'net_amount' => '',		 		//Amount Collected After Fees */
-			'tp_id' => 'id', 		
-			'full_name' => 'source_name',			//
-			'address' => 'source_address_line1',	//	
-			'address1' => 'source_address_line2',	//	
-			'city' => 'source_address_city',		//	
-			'state' => 'source_address_state',		//	
-			'zip' => 'source_address_zip',			//	
-			'country' => 'source_country',			//	
-			'email' => 'receipt_email',				//	
-			'phone' => 'receipt_number',			//	
-			'cc_type' => 'source_brand',			//paypal, visa, mastercard, etc. 
-			'cc_card' => 'source_last4',			//last4 of 
-			'cc_exp_month' => 'source_exp_month',	//expiration date. 
-			'cc_exp_year' => 'source_exp_year',		//expiration date. 
-			'on_behalf_of' => 'on_behalf_of',		//email_address 	
-			
+		private $card_data_map = [ //'nn_value' => '3rd_party_val
+			'address' 		=> 'address_line1',	//	
+			'address1'		=> 'address_line2',	//	
+			'city' 			=> 'address_city',	//	
+			'state' 		=> 'address_state',	//	
+			'zip' 			=> 'address_zip',	//	
+			'country' 		=> 'address_country',	//	
+			'cc_type' 		=> 'brand',	//paypal, visa, mastercard, etc. 
+			'cc_card' 		=> 'last4',	 //last4 of 
+			'cc_exp_month' 	=> 'exp_month', //expiration date. 
+			'cc_exp_year'	 => 'exp_year',		//expiration date. 
+			'stripe_customer_id' => 'customer'
 		
 		];
 		
-
-//INCOMPLETE
-
 		
 		//https://stripe.com/docs/api/sources/object
+		//Presently contains no data that we need. Maybe in the future
 		private $source_data_map = [ //'nn_value' => '3rd_party_value'
-			'create_date' => 'created',
-			'trans_type' => 'object',
-			'trans_status' => 'status',
-			'trans_descrip' => 'description',
-			'currency' => 'currency',
-/* 			'subtotal' => '',		 		//Subtotal before taxes
-			'discount' => '',		 		//Discount on Subtotal
-			'sales_tax' => '',		 		//Sales Tax */
-			'gross_amount' => 'amount', 			//Transaction Gross Amount
-/* 			'trans_fee' => '',  	 		//Transaction Fee
-			'net_amount' => '',		 		//Amount Collected After Fees */
-			'tp_id' => 'id', 		
-			'full_name' => 'source_name',			//
-			'address' => 'source_address_line1',	//	
-			'address1' => 'source_address_line2',	//	
-			'city' => 'source_address_city',		//	
-			'state' => 'source_address_state',		//	
-			'zip' => 'source_address_zip',			//	
-			'country' => 'source_country',			//	
-			'email' => 'receipt_email',				//	
-			'phone' => 'receipt_number',			//	
-			'cc_type' => 'source_brand',			//paypal, visa, mastercard, etc. 
-			'cc_card' => 'source_last4',			//last4 of 
-			'cc_exp_month' => 'source_exp_month',	//expiration date. 
-			'cc_exp_year' => 'source_exp_year',		//expiration date. 
-			'on_behalf_of' => 'on_behalf_of',		//email_address 	
 			
 		
 		];
@@ -340,7 +214,7 @@ if( !class_exists( 'DataMap' ) ){
 		public function __destruct(){
 			
 			//What data should be unset? 
-			unset()
+			//unset()
 			
 		}	
 		
@@ -354,8 +228,10 @@ if( !class_exists( 'DataMap' ) ){
 		
 		private function init( $data ){
 			
-			//$this->in = $data; 
-			//$this->to_array();
+			$this->in = $data; 
+			$this->to_array();
+			
+			
 		}	
 		
 		
@@ -374,6 +250,8 @@ if( !class_exists( 'DataMap' ) ){
 			
 			if( !empty( $array ) )
 				$this->data = $array;
+			
+			dump( __LINE__, __METHOD__, $array );
 		}
 
 		
@@ -382,9 +260,9 @@ if( !class_exists( 'DataMap' ) ){
 		Description: returns the data_map property which is privately protected. 
 	*/	
 		
-		public function get_data_map(){
+		public function get_mapped_data(){
 			
-			return $this->data_map;
+			return $this->data;
 			
 		}	
 

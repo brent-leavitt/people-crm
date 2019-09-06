@@ -32,8 +32,8 @@ if( !class_exists( 'Format' ) ){
 		public $out; 							//Outgoing Data Array
 		
 		//EXTRA FORMATTING MAY BE NEEDED TO PROCESS INComing dATA. 
-		public $source;							//(string) The source: Stripe, PayPal, Default. 
-		public $data_map;						//(array) Mapped Variables from source to output. 
+		//public $source;							//(string) The source: Stripe, PayPal, Default. 
+		public $mapped_data;						//(array) Mapped Variables from source to output. 
 		
 		public $output_format = array(
 			'action' => '',						//Primary Action 
@@ -149,7 +149,7 @@ if( !class_exists( 'Format' ) ){
 			
 			//Set source of data, this also connects the data map to be used. 
 			if( $this->set_source( $source ) )
-				$this->do_formatting();//Once all key values are in place, let's format the data. 
+				//$this->do_formatting();//Once all key values are in place, let's format the data. 
 			
 			
 			
@@ -176,12 +176,14 @@ if( !class_exists( 'Format' ) ){
 				$source = ucfirst( strtolower( $source ) );
 				
 				
-				$src_class = 'people_crm\\data\\'.$source.'\\DataMap';
-				$src = new $src_class( [] );
+				$src_data_map = 'people_crm\\data\\'.$source.'\\DataMap';
+				$data_map = new $src_data_map( $this->in );
 				
 				//set source string.
-				$this->source = $source;
-				$this->data_map = $src->get_data_map();
+				//$this->source = $source;
+				
+				//set mapped data
+				$this->mapped_data = $data_map->get_mapped_data();
 				
 				
 				//dump( __LINE__, __METHOD__, $this->source );
@@ -189,7 +191,7 @@ if( !class_exists( 'Format' ) ){
 				$this->data = $this->source->to_array(); */	
 			
 			//if not empty, then true. 
-			return  ( !empty( $this->source ) && !empty( $this->data_map ) )? true : false;
+			return  ( /* !empty( $this->source ) && */ !empty( $this->mapped_data ) )? true : false;
 			
 		}
 		
@@ -202,23 +204,19 @@ if( !class_exists( 'Format' ) ){
 			
 			
 			//source data in array format. Why is this coming from here, and not from $this->in. 
-			$data = $this->flatten( $this->in );
-						
-			//data_map for source type: paypal, stripe, etc. 
-			$data_map = $this->data_map;
+			$data = $this->mapped_data;
 			
 			//the starting point for the final output, a template from $output_format
 			$output = $this->output_format;
 			
 
 			//a quick check to see that each is set.
-			if( empty( $data ) || empty( $data_map ) || empty( $output ) ) 
+			if( empty( $data ) || empty( $output ) ) 
 				return; 
 			
-			
-			
+						
 			//Map data from source to final format
-			$output = $this->do_mapping( $output, $data_map, $data );
+			//$output = $this->do_mapping( $output, $data );
 			
 			//dump( __LINE__, __METHOD__, $data );
 
@@ -262,7 +260,7 @@ if( !class_exists( 'Format' ) ){
 		Description: This method will only look for fields as set in the output_format. If it's not there and not mapped to a field from the source data, it doesn't get processed at this point in time. 
 	*/	
 		
-		public function do_mapping( $output, $data_map, $data){
+		public function do_mapping( $output, $data){
 			//Then for each field in the output format, look for a suitable input. 
 			
 			foreach( $output as $o_key => $o_val ){
@@ -285,14 +283,14 @@ if( !class_exists( 'Format' ) ){
 					continue; 
 				}
 				
-				//if no, run data_map on value
+				/* //if no, run data_map on value
 				if( isset( $data_map[ $o_key ] ) ){		
 					if( ( $found = $this->find_in_source( $data_map[ $o_key ], $data ) ) !== false ){
 						$output[ $o_key ] = $found;
 						//dump( __LINE__, __METHOD__, $o_key );
 						//dump( __LINE__, __METHOD__, $output[ $o_key ] );
 					}
-				} 
+				}  */
 			}
 			
 			return ( $output )?? '' ; 
