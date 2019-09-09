@@ -229,29 +229,128 @@ if( !class_exists( 'DataMap' ) ){
 		private function init( $data ){
 			
 			$this->in = $data; 
-			$this->to_array();
+			
+			//build an array of "objects" from the incoming data. 
+			$final = $this->build_objs_array( $this->in );
+			dump( __LINE__, __METHOD__, $final);
+			
+			//filter out only those objects that contain pertinent data. ($objects_arr)
+			
+			//treat each object separately, then map available data for each object. 
+			
+			//dump all data from processed objects into the $this->data_set[ 'data' ] array. 
+			
+			
+			
+			//put object name in key. if nested objects, value is another array. 
+			
+			/* 
+			
+			$objs = [ 
+				'obj_1'=> [
+					'obj_2' => '',
+					'obj_3' => '',
+					'obj_4' => [
+						'obj_5' => ''
+					]
+				],
+				'obj_6' => [
+					'obj_2' => '',
+					'obj_3' => '',
+				]
+				//etc.
+			]; 
+			
+			*/
+			
+			
+			//$this->to_array();
 			
 			
 		}	
 		
+	/*
+		Name: build_objs_array
+		Description: builds an array of objects only
+	*/	
 		
-
+		public function build_objs_array( $in, $i = 0, $key_name = ''){
+			//$i++;
+			$out = [];
+			//dump( __LINE__, __METHOD__, $in );
+			
+			
+			$new_key = ( is_object( $in ) && empty( $key_name ) )? get_class( $in ) : $key_name;
+			
+			$new_value = [];
+			
+			
+			//convert to array for iteration. 
+			$in_arr = ( is_object( $in ) )?  $in->__toArray() : $in ;
+			
+			if( isset( $in_arr[ 'object' ] ) )
+				echo "\r\n this is a {$in_arr[ 'object' ]} object!!!  \r\n";
+			
+			dump( __LINE__, __METHOD__, $in_arr );
+			
+			foreach( $in_arr as $k => $v ){
+				//we need to look in here for more object, but not do anything else. 
+				if( is_array( $v ) ){
+					$rsult = $this->build_objs_array( $v, $i );
+					//dump( __LINE__, __METHOD__, $i );
+					//dump( __LINE__, __METHOD__, $rsult);
+					if( !empty( $rsult ) ){
+						$new_value[ $k ] = $rsult;
+					}
+				}
+				
+				if( is_object( $v ) ){
+					
+					$key_name = get_class( $v );
+					$rsult = $this->build_objs_array( $v, $i, $key_name  );
+					$r_key = key( $rsult );
+					if( array_key_exists( $r_key, $new_value ) ){
+						//dump( __LINE__, __METHOD__, $rsult);
+						$i++;
+						$rsult[ $r_key.$i ] = $rsult[ $r_key ];
+					}
+					$new_value  =  $new_value + $rsult;
+					
+					//dump( __LINE__, __METHOD__, $i );
+					//dump( __LINE__, __METHOD__, $new_value);
+				}	
+				
+				
+			}
+			
+			
+			if( is_object( $in ) )
+				$out[ $new_key ] = $new_value ?? '';
+			
+			
+			//dump( __LINE__, __METHOD__, $out);
+			return $out; 
+		}				
+	
 	/*
 		Name: to_array
 		Description: Converts JSON Data to array and stores it in the "data" property.
 	*/
 		
-		public function to_array(){
+		public function to_array( $in ){
 			
 			
 			//$array = (array) $this->in;
+			
+			dump( __LINE__, __METHOD__, $this->in );
 			
 			$array = json_decode( json_encode( $this->in ), true );
 			
 			if( !empty( $array ) )
 				$this->data = $array;
 			
-			dump( __LINE__, __METHOD__, $array );
+			return $out;
+			//dump( __LINE__, __METHOD__, $array );
 		}
 
 		

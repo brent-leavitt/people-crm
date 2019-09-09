@@ -149,12 +149,13 @@ if( !class_exists( 'Format' ) ){
 			
 			//Set source of data, this also connects the data map to be used. 
 			if( $this->set_source( $source ) )
+				echo "TESTING DATA MAP CLASS<br />";
 				//$this->do_formatting();//Once all key values are in place, let's format the data. 
 			
 			
 			
 			
-			dump( __LINE__, __METHOD__, $this );
+			//dump( __LINE__, __METHOD__, $this );
 		}
 
 		

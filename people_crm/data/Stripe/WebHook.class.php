@@ -102,10 +102,9 @@ if( !class_exists( 'WebHook' ) ){
 				return false;
 				
 			//Set primary action
-			$this->action = $this->actionable_responses[ $eventType ];
+			$this->action = $this->actionable_responses[ $eventType ]; //
 			
-			
-			$format = new Format( $event->data, 'Stripe', $this->action ); // contains the data from a Stripe event.
+			$format = new Format( $event->data[ "object" ] , 'Stripe', $this->action ); // contains the data from a Stripe event.
 			
 			//Should this happen by default?
 			//$format->set_format();
@@ -208,7 +207,7 @@ if( !class_exists( 'WebHook' ) ){
 			$timestamp = time();
 			// Gather post data.
 			
-			wp_mail( 'brent@trainingdoulas.com', 'testEventResponse '. $type .' '.$timestamp , $post  );
+			//wp_mail( 'brent@trainingdoulas.com', 'testEventResponse '. $type .' '.$timestamp , $post  );
 			
 			//dump( __CLASS__, __METHOD__, $post );
 		}
