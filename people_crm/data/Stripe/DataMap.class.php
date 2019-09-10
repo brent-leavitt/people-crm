@@ -3,7 +3,7 @@
 /* 
 people_crm\data\Stripe\DataMap
 DataMap Class for NBCS Network Plugin
-Last Updated 19 Dec 2018
+Last Updated 9 Sept 2019
 -------------
 
 Description: 
@@ -38,8 +38,8 @@ if( !class_exists( 'DataMap' ) ){
 	class DataMap{
 
 	// PROPERTIES
-		public $in; 			//This is the source JSON string of info.
-		public $data = [];		//This is the converted array of incoming JSON data. 
+		//public $in; 			//This is the source JSON string of info.
+		//public $data = [];		//This is the converted array of incoming JSON data. 
 		
 		public $data_set = array(
 				'action' => '',
@@ -50,7 +50,7 @@ if( !class_exists( 'DataMap' ) ){
 			);
 		
 		
-		private $objects_arr = [
+		private $core_objects = [
 			'charge',
 			'customer',
 			'invoice',
@@ -231,128 +231,239 @@ if( !class_exists( 'DataMap' ) ){
 			$this->in = $data; 
 			
 			//build an array of "objects" from the incoming data. 
-			$final = $this->build_objs_array( $this->in );
-			dump( __LINE__, __METHOD__, $final);
 			
-			//filter out only those objects that contain pertinent data. ($objects_arr)
-			
-			//treat each object separately, then map available data for each object. 
-			
-			//dump all data from processed objects into the $this->data_set[ 'data' ] array. 
+			$this->data_set[ 'data' ] = $this->set_data();
 			
 			
+			//$final = $this->build_objs_array( $this->in );
+			dump( __LINE__, __METHOD__, $this->data_set);
 			
-			//put object name in key. if nested objects, value is another array. 
 			
-			/* 
-			
-			$objs = [ 
-				'obj_1'=> [
-					'obj_2' => '',
-					'obj_3' => '',
-					'obj_4' => [
-						'obj_5' => ''
-					]
-				],
-				'obj_6' => [
-					'obj_2' => '',
-					'obj_3' => '',
-				]
-				//etc.
-			]; 
-			
-			*/
 			
 			
 			//$this->to_array();
 			
 			
 		}	
-		
+	
 	/*
-		Name: build_objs_array
-		Description: builds an array of objects only
+		Name: set_data
+		Description: receives incoming data, and returns an array of informaiton for the data_set[ 'data' ] property. 
 	*/	
 		
-		public function build_objs_array( $in, $i = 0, $key_name = ''){
-			//$i++;
-			$out = [];
-			//dump( __LINE__, __METHOD__, $in );
+		public function set_data( $in ){
+			
+			$arr = []; //final output is an array. 
+			
+			//add sets of data as arrays. 
+			
+			$in_arr = $in->__toArray(); 
+			
+			//remove nested data and return it as additional arrays. 
+			
+			$arr[ $in_arr[ 'object' ] ] = array_merge( $in_arr, $this->simplify_arr( $in_arr ) );
 			
 			
-			$new_key = ( is_object( $in ) && empty( $key_name ) )? get_class( $in ) : $key_name;
+			$arr = array_merge( $arr, $this->add_cores( $in_arr ) ); 
 			
-			$new_value = [];
+			return $arr;
+
+		}		
+		
+		
+	/*
+		Name: simplify_arr
+		Description: Receive the array, and cleans out anything that is nested as an object, and returns cleaned data. 
+	*/	
+		
+		public function simplify_arr( $arr ){
 			
+			$add_val = [];
 			
-			//convert to array for iteration. 
-			$in_arr = ( is_object( $in ) )?  $in->__toArray() : $in ;
-			
-			if( isset( $in_arr[ 'object' ] ) )
-				echo "\r\n this is a {$in_arr[ 'object' ]} object!!!  \r\n";
-			
-			dump( __LINE__, __METHOD__, $in_arr );
-			
-			foreach( $in_arr as $k => $v ){
-				//we need to look in here for more object, but not do anything else. 
-				if( is_array( $v ) ){
-					$rsult = $this->build_objs_array( $v, $i );
-					//dump( __LINE__, __METHOD__, $i );
-					//dump( __LINE__, __METHOD__, $rsult);
-					if( !empty( $rsult ) ){
-						$new_value[ $k ] = $rsult;
-					}
-				}
+			foreach( $arr as $key => $val ){
 				
-				if( is_object( $v ) ){
-					
-					$key_name = get_class( $v );
-					$rsult = $this->build_objs_array( $v, $i, $key_name  );
-					$r_key = key( $rsult );
-					if( array_key_exists( $r_key, $new_value ) ){
-						//dump( __LINE__, __METHOD__, $rsult);
-						$i++;
-						$rsult[ $r_key.$i ] = $rsult[ $r_key ];
-					}
-					$new_value  =  $new_value + $rsult;
-					
-					//dump( __LINE__, __METHOD__, $i );
-					//dump( __LINE__, __METHOD__, $new_value);
+				//
+				if( is_core_object( $val ) )
+					unset( $arr[ $key ] );
+
+				if( is_object( $val ) || is_array( $val ) ){
+					$add_val[ $key ] = $val;
+					unset( $arr[ $key ] );
 				}	
+			}
+			
+			//This will take anything that is nested but not core and add it to the array. 
+			$arr = array_merge( $arr, $this->flatten( $add_val ) );
+			
+			return $arr
+		}		
+	
+
+	/*
+		Name: add_val (NOT NEEDED) 
+		Description: Incoming is an array of arrays and objects. This will take anything that is nested but not core and add it to the array. Outputs a simple flattened array. 
+	*/	
+		
+		public function add_val( $in ){
+			
+			$arr = [];
+			
+			$in_arr = ( is_object( $in ) )?  $in->__toArray : $in ;
 				
+			
+			foreach( $in_arr as $key => $val  ){
+				
+				//if core, ignore:
+				if( is_core_object( $val ) )
+					continue;	
+				
+				//if value is obj: flatten_obj
+				if( is_object( $val ) )
+					$arr = array_merge( $arr, $this->flatten_obj( $val, $key ) );
+				
+				//if value is array: flatten_arr
+				if( is_array( $val ) )
+					$arr = array_merge( $arr, $this->flatten_arr( $val, $key ) );
 				
 			}
 			
-			
-			if( is_object( $in ) )
-				$out[ $new_key ] = $new_value ?? '';
-			
-			
-			//dump( __LINE__, __METHOD__, $out);
-			return $out; 
-		}				
+			return $arr;
+		}	
 	
-	/*
-		Name: to_array
-		Description: Converts JSON Data to array and stores it in the "data" property.
-	*/
-		
-		public function to_array( $in ){
-			
-			
-			//$array = (array) $this->in;
-			
-			dump( __LINE__, __METHOD__, $this->in );
-			
-			$array = json_decode( json_encode( $this->in ), true );
-			
-			if( !empty( $array ) )
-				$this->data = $array;
-			
-			return $out;
-			//dump( __LINE__, __METHOD__, $array );
-		}
 
+	/*
+		Name: add_cores
+		Description: this processes all incoming data and pulls out additional core objects and attaches them as additional arrays. 
+	*/	
+		
+		public function add_cores( $in ){
+			
+			
+		}	
+
+		
+		
+		/* 
+		
+		OLD CODE 
+		
+			
+			$in = ( empty( $in ) && ( $i == 0  ) )?  $this->in : in ;
+			
+			$i++;
+			
+			
+			//convert to array for iteration. 
+			$in_arr = ( is_object( $in ) )?   : $in ;
+			
+			$obj_name = ( $in_arr[ 'object' ] ) ?? '';
+			
+			//if this is a good egg, let's eat it! This is a core data object
+			if( $this->is_core_object( $obj_name ) ){
+				
+				//Now I want to take everything that is not an object or array and set it inside here. 
+						//Move all this to another method?
+				foreach( $in_arr  as $key => $val ){
+					
+					if( is_array( $val ) ){
+						
+						$new_arr = $this->flatten_arr( $val );
+						
+						$arr = $arr + $new_arr;
+						
+					}
+					
+					if( is_object( $val )  ){
+						
+						//This will return either a core_object or an array of values
+						$sub_data = $this->sub_data_loop( $val, $key );
+						
+						dump( __LINE__, __METHOD__, $sub_data );
+						if( $this->is_core_object( $sub_data[ 'object' ] ) ){
+							
+							echo "We are calling the build_data METHOD inside itself! \r";
+							$this->set_data( $sub_data, $i );
+							
+						} else {
+							
+							//$arr = array_merge( $arr, $sub_data );
+							$new_arr = $this->sub_data_loop( $sub_data );
+							
+							$arr = array_merge( $arr, $new_arr );
+							
+						}
+						
+						//else it needs to be processed further. if it is core data, it can be run through this loop again. $val could be a core object. 
+						continue;
+					}	
+					
+					$arr[ $key ] = $val;
+					
+				}
+				
+				
+			} else {
+				
+				//This is not an core object, but another type of array or object, we need to loop through this and then tack it on as well. 
+				
+				//$arr[ $key ] = $val;
+			} */
+	
+
+	/*
+		Name: is_core_object
+		Description: Checks to see if the tested object is in the core objects array
+	*/	
+		
+		public function is_core_object( $obj ){
+			
+			$arr =( is_object( $obj ) )? $obj->__toArray() : (array)$obj ;
+			
+			if( isset( $arr[ 'object' ] ) ){
+				if( in_array( $arr[ 'object' ] , $this->core_objects  ) )
+					return true;
+			}
+			
+			return false;
+		}		
+	
+		
+	/*
+		Name: flatten
+		Description: flattens multidemensional arrays, partner method to flatten_obj. 
+	*/	
+		
+		public function flatten( $arr, $prefix = '' ){
+			
+				$new_arr = [];	
+				
+				$arr = ( is_object( $obj ) )? $obj->__toArray() : (array) $obj; 
+					
+				foreach( $arr as $k => $v ){
+					$new_key = ( !empty( $prefix ) )? $prefix . '_' . $k : $k;
+					
+					//if this is array:
+					if( !is_array( $v ) && !is_object( $v ) ){
+						$new_arr[ $new_key ] = $v;
+						continue;
+						
+					//if this is an object:	
+					}elseif( is_object( $v )){
+								
+						if( $this->is_core_object( $v ) ){
+							echo "Core object found in flatten_arr. We are removing it! \r";
+							dump( __LINE__, __METHOD__, $v );
+							unset( $arr[ $k ] );
+							continue;
+						}
+					}	
+					
+					$new_arr = $this->flatten( $v, $new_key );
+					
+				}	
+				return $new_arr;
+		}	
+	
 		
 	/*
 		Name: get_data_map
@@ -361,7 +472,7 @@ if( !class_exists( 'DataMap' ) ){
 		
 		public function get_mapped_data(){
 			
-			return $this->data;
+			return $this->data_set;
 			
 		}	
 
@@ -479,30 +590,6 @@ if( !class_exists( 'DataMap' ) ){
 			
 		}	
 
-		/*
-		Name: flatten an object or array. 
-		Description: 
-	*/	
-		
-		public function flatten( $in, $prefix = ''){
-			
-		$array = (array) $in;
-			$out = array();
-
-			foreach( $array as $key => $value ){
-				if( $key !== 'data' || $key !== 'object' )
-					$new_key = $prefix . ( empty( $prefix ) ? '' : '_' ) . $key;
-				else 
-					$new_key = $prefix;
-				
-				
-				if( is_array( $value ) || is_object( $value ) )
-					$out = array_merge( $out, $this->flatten( $value, $new_key ) );
-				else
-					$out[ $new_key ] = $value;
-			}
-			return $out;
-		}	
 	/*
 		Name: 
 		Description: 
