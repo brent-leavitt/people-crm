@@ -232,7 +232,7 @@ if( !class_exists( 'DataMap' ) ){
 			
 			//build an array of "objects" from the incoming data. 
 			
-			$this->data_set[ 'data' ] = $this->set_data();
+			$this->data_set[ 'data' ] = $this->set_data( $data );
 			
 			
 			//$final = $this->build_objs_array( $this->in );
@@ -261,10 +261,17 @@ if( !class_exists( 'DataMap' ) ){
 			
 			//remove nested data and return it as additional arrays. 
 			
-			$arr[ $in_arr[ 'object' ] ] = array_merge( $in_arr, $this->simplify_arr( $in_arr ) );
+			$cores = $this->add_cores( $in_arr );
+			
+			foreach( $cores as $c_key => $c_val )
+				$cores[ $c_key ] = $this->flatten( $c_val );
+				
+			dump( __LINE__, __METHOD__, $cores );
+			
+			$arr[ $in_arr[ 'object' ] ] = $this->simplify_arr( $in_arr );
 			
 			
-			$arr = array_merge( $arr, $this->add_cores( $in_arr ) ); 
+			$arr = array_merge( $arr, $cores ); 
 			
 			return $arr;
 
@@ -282,9 +289,11 @@ if( !class_exists( 'DataMap' ) ){
 			
 			foreach( $arr as $key => $val ){
 				
-				//
-				if( is_core_object( $val ) )
+				if( $this->is_core_object( $val ) || empty( $val ) ){
+					//echo "THIS iteration is being skipped: $key -> $val \n\n";
 					unset( $arr[ $key ] );
+					continue;	
+				}
 
 				if( is_object( $val ) || is_array( $val ) ){
 					$add_val[ $key ] = $val;
@@ -295,41 +304,10 @@ if( !class_exists( 'DataMap' ) ){
 			//This will take anything that is nested but not core and add it to the array. 
 			$arr = array_merge( $arr, $this->flatten( $add_val ) );
 			
-			return $arr
+			return $arr;
 		}		
 	
 
-	/*
-		Name: add_val (NOT NEEDED) 
-		Description: Incoming is an array of arrays and objects. This will take anything that is nested but not core and add it to the array. Outputs a simple flattened array. 
-	*/	
-		
-		public function add_val( $in ){
-			
-			$arr = [];
-			
-			$in_arr = ( is_object( $in ) )?  $in->__toArray : $in ;
-				
-			
-			foreach( $in_arr as $key => $val  ){
-				
-				//if core, ignore:
-				if( is_core_object( $val ) )
-					continue;	
-				
-				//if value is obj: flatten_obj
-				if( is_object( $val ) )
-					$arr = array_merge( $arr, $this->flatten_obj( $val, $key ) );
-				
-				//if value is array: flatten_arr
-				if( is_array( $val ) )
-					$arr = array_merge( $arr, $this->flatten_arr( $val, $key ) );
-				
-			}
-			
-			return $arr;
-		}	
-	
 
 	/*
 		Name: add_cores
@@ -338,76 +316,24 @@ if( !class_exists( 'DataMap' ) ){
 		
 		public function add_cores( $in ){
 			
+			$cores = [];
 			
+			$in_arr = ( is_object( $in ) )? $in->__toArray() : (array) $in; 
+			
+			foreach( $in_arr as $key => $val ){
+				
+				//look deeper for additional cores
+				if( is_object( $val ) || is_array( $val ) ){
+					if( $this->is_core_object( $val ) ){
+						$cores[ $key ] = $val->__toArray(); 
+					}					
+					$cores = array_merge( $cores, $this->add_cores( $val ) );
+
+				}
+			}
+			return $cores;
 		}	
 
-		
-		
-		/* 
-		
-		OLD CODE 
-		
-			
-			$in = ( empty( $in ) && ( $i == 0  ) )?  $this->in : in ;
-			
-			$i++;
-			
-			
-			//convert to array for iteration. 
-			$in_arr = ( is_object( $in ) )?   : $in ;
-			
-			$obj_name = ( $in_arr[ 'object' ] ) ?? '';
-			
-			//if this is a good egg, let's eat it! This is a core data object
-			if( $this->is_core_object( $obj_name ) ){
-				
-				//Now I want to take everything that is not an object or array and set it inside here. 
-						//Move all this to another method?
-				foreach( $in_arr  as $key => $val ){
-					
-					if( is_array( $val ) ){
-						
-						$new_arr = $this->flatten_arr( $val );
-						
-						$arr = $arr + $new_arr;
-						
-					}
-					
-					if( is_object( $val )  ){
-						
-						//This will return either a core_object or an array of values
-						$sub_data = $this->sub_data_loop( $val, $key );
-						
-						dump( __LINE__, __METHOD__, $sub_data );
-						if( $this->is_core_object( $sub_data[ 'object' ] ) ){
-							
-							echo "We are calling the build_data METHOD inside itself! \r";
-							$this->set_data( $sub_data, $i );
-							
-						} else {
-							
-							//$arr = array_merge( $arr, $sub_data );
-							$new_arr = $this->sub_data_loop( $sub_data );
-							
-							$arr = array_merge( $arr, $new_arr );
-							
-						}
-						
-						//else it needs to be processed further. if it is core data, it can be run through this loop again. $val could be a core object. 
-						continue;
-					}	
-					
-					$arr[ $key ] = $val;
-					
-				}
-				
-				
-			} else {
-				
-				//This is not an core object, but another type of array or object, we need to loop through this and then tack it on as well. 
-				
-				//$arr[ $key ] = $val;
-			} */
 	
 
 	/*
@@ -417,11 +343,13 @@ if( !class_exists( 'DataMap' ) ){
 		
 		public function is_core_object( $obj ){
 			
+			
 			$arr =( is_object( $obj ) )? $obj->__toArray() : (array)$obj ;
 			
 			if( isset( $arr[ 'object' ] ) ){
-				if( in_array( $arr[ 'object' ] , $this->core_objects  ) )
+				if( in_array( $arr[ 'object' ] , $this->core_objects  ) ){
 					return true;
+				}
 			}
 			
 			return false;
@@ -433,34 +361,38 @@ if( !class_exists( 'DataMap' ) ){
 		Description: flattens multidemensional arrays, partner method to flatten_obj. 
 	*/	
 		
-		public function flatten( $arr, $prefix = '' ){
+		public function flatten( $obj, $prefix = '' ){
 			
 				$new_arr = [];	
 				
 				$arr = ( is_object( $obj ) )? $obj->__toArray() : (array) $obj; 
 					
 				foreach( $arr as $k => $v ){
+					
+					if( empty( $v ) ) continue;
+					
 					$new_key = ( !empty( $prefix ) )? $prefix . '_' . $k : $k;
 					
-					//if this is array:
+					//if this is not array or object:
 					if( !is_array( $v ) && !is_object( $v ) ){
 						$new_arr[ $new_key ] = $v;
 						continue;
-						
-					//if this is an object:	
-					}elseif( is_object( $v )){
-								
+					}
+					
+					if( is_object( $v ) ){
 						if( $this->is_core_object( $v ) ){
-							echo "Core object found in flatten_arr. We are removing it! \r";
-							dump( __LINE__, __METHOD__, $v );
+							echo "Core object found in flatten_arr. We are removing it! \r\r";
 							unset( $arr[ $k ] );
 							continue;
 						}
 					}	
 					
-					$new_arr = $this->flatten( $v, $new_key );
+					$new_arr = array_merge( $new_arr, $this->flatten( $v, $new_key ) );
 					
 				}	
+				
+				//dump( __LINE__, __METHOD__, $new_arr );	
+				
 				return $new_arr;
 		}	
 	
