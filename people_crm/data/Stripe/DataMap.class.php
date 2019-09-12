@@ -46,7 +46,9 @@ if( !class_exists( 'DataMap' ) ){
 				'patron' => 0,
 				'service' => '',
 				'token' => '',
-				'data' => array()
+				'data' => array(),
+				'source_data' => array(),
+				
 			);
 		
 		
@@ -142,6 +144,9 @@ if( !class_exists( 'DataMap' ) ){
 		private $subscription_data_map = [ //'nn_value' => '3rd_party_value'
 			'subscription_id' => 'id', //
 			'subscription_status' => 'status', //
+			'enrollment' => 'metadata_enrollment', //
+			'service' => 'metadata_service', //
+			'stripe_customer_id' => 'customer',
 			'' => '', //
 			
 		
@@ -228,17 +233,20 @@ if( !class_exists( 'DataMap' ) ){
 		
 		private function init( $data ){
 			
-			$this->in = $data; 
+			//Not sure if I want to send the whole source data object through the back end. Not secure either...
+			//$this->data_set[ 'source_data' ] = $data; 
 			
-			//build an array of "objects" from the incoming data. 
+			//build an array of "core_objects" from the incoming data. 
 			
-			$this->data_set[ 'data' ] = $this->set_data( $data );
+			$set_data = $this->set_data( $data );
 			
+			dump( __LINE__, __METHOD__, $set_data);
 			
-			//$final = $this->build_objs_array( $this->in );
+			$this->data_set[ 'data' ] = $this->map_data( $set_data );
+			
 			dump( __LINE__, __METHOD__, $this->data_set);
 			
-			
+			//set action
 			
 			
 			//$this->to_array();
@@ -263,19 +271,68 @@ if( !class_exists( 'DataMap' ) ){
 			
 			$cores = $this->add_cores( $in_arr );
 			
-			foreach( $cores as $c_key => $c_val )
-				$cores[ $c_key ] = $this->flatten( $c_val );
-				
-			dump( __LINE__, __METHOD__, $cores );
+			foreach( $cores as $c_key => $c_val ){
+				$new_core = $this->flatten( $c_val );
+				unset( $cores[ $c_key ] );
+				$cores[ $new_core[ 'object' ] ] = $new_core;
+			}	
 			
 			$arr[ $in_arr[ 'object' ] ] = $this->simplify_arr( $in_arr );
-			
-			
+		
 			$arr = array_merge( $arr, $cores ); 
 			
 			return $arr;
 
 		}		
+		
+		
+		
+	/*
+		Name: map_data
+		Description: 
+	*/	
+		
+		public function map_data( $data ){
+			
+			$mapped = [];
+			
+			$keys = array_keys( $data );
+			
+			for( $i = 0; $i < count( $data ); $i++ ){
+				$core =	$keys[ $i ];
+				$mapped[ $core ] = $this->map_object( $core, $data[ $core ] );
+			}
+			
+			return $mapped; 
+		}		
+		
+		
+
+	/*
+		Name: map_object
+		Description: This maps a specific set of core object data. 
+	*/	
+		
+		public function map_object( $name , $arr ){
+			
+			$obj_name = $name."_data_map";
+			$data_map = ( $this->$obj_name )?? NULL;
+			
+			if( empty( $data_map ) ) return false;
+			
+			$new_arr = [];
+			
+			foreach( $data_map as $key => $val )
+				$new_arr[ $key ] = ( $arr[ $val ] )?? NULL ;
+			
+			//Drop empty values, but not zeros.
+			$new_arr = array_filter( $new_arr, 'strlen' );
+			
+			return $new_arr;
+		}	
+
+		
+		
 		
 		
 	/*
@@ -380,8 +437,7 @@ if( !class_exists( 'DataMap' ) ){
 					}
 					
 					if( is_object( $v ) ){
-						if( $this->is_core_object( $v ) ){
-							echo "Core object found in flatten_arr. We are removing it! \r\r";
+						if( $this->is_core_object( $v ) ){ //if is core object, remove it.
 							unset( $arr[ $k ] );
 							continue;
 						}
