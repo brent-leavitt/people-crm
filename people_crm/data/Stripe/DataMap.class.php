@@ -2,31 +2,14 @@
 
 /* 
 people_crm\data\Stripe\DataMap
-DataMap Class for NBCS Network Plugin
+Stripe DataMap Class for People CRM 
 Last Updated 9 Sept 2019
 -------------
 
 Description: 
 
 
-Dev Notes: 
 
-you need a data map for each type of object that comes out of stripe. For example the invoice object, the subscription obj, the plan object, the source object, and the customer obj. Because the data will come differently from different objects, each needs to be mapped. 
-		
-	Types of Main Objects: 
-		- charge
-		- customer
-		- invoice
-		- source
-		
-	Additional Objects: 
-		- subscription
-		- plan
-		- subscription_item
-		- card
-		- list
-		
-		- ?
 		
 */
 	
@@ -37,19 +20,9 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 if( !class_exists( 'DataMap' ) ){
 	class DataMap{
 
-	// PROPERTIES
-		//public $in; 			//This is the source JSON string of info.
-		//public $data = [];		//This is the converted array of incoming JSON data. 
-		
-		public $data_set = array(
-				'action' => '',
-				'patron' => 0,
-				'service' => '',
-				'token' => '',
-				'data' => array(),
-				'source_data' => array(),
-				
-			);
+		// PROPERTIES
+	
+		public $data_set = array();
 		
 		
 		private $core_objects = [
@@ -196,8 +169,6 @@ if( !class_exists( 'DataMap' ) ){
 		];
 
 		
-		
-		
 	// METHODS	
 
 	/*
@@ -224,33 +195,19 @@ if( !class_exists( 'DataMap' ) ){
 		}	
 		
 
-
-
 	/*
 		Name: Init
 		Description: 
 	*/	
 		
 		private function init( $data ){
-			
-			//Not sure if I want to send the whole source data object through the back end. Not secure either...
-			//$this->data_set[ 'source_data' ] = $data; 
+	
 			
 			//build an array of "core_objects" from the incoming data. 
-			
 			$set_data = $this->set_data( $data );
 			
-			dump( __LINE__, __METHOD__, $set_data);
-			
-			$this->data_set[ 'data' ] = $this->map_data( $set_data );
-			
-			dump( __LINE__, __METHOD__, $this->data_set);
-			
-			//set action
-			
-			
-			//$this->to_array();
-			
+			//Map "core_objects" to the data_set for use by the "Format" class. 
+			$this->data_set = $this->map_data( $set_data );
 			
 		}	
 	
@@ -464,21 +421,30 @@ if( !class_exists( 'DataMap' ) ){
 			
 		}	
 
-		
+			
 	/*
-		Name: get_action
+		Name: search_data_map
 		Description: 
 	*/	
 		
-		/* 
-		public function get_action(){
+		public function search_data_map( $key ){
 			
-			//$action = $this->data[ 'custom' ];
+			$value = '';
 			
-			return $this->get_meta( 'action' );
+			if( empty( $this->data_map ) ) return false;
+			
+			$dm_keys = array_keys( $this->data_map );
+			
+			for( $i = 0; $i < count( $this->data_map ); $i++ ){
+				$data_map_key = $dm_keys[ $i ];
+				foreach( $this->data_map[ $data_map_key ] as $k => $val ){
+					if( $k === $key )
+						return $val;
+				}
+			}	
+			return false; 
 		}
-		*/
-				
+
 		
 	/*
 		Name: get_patron
@@ -487,16 +453,22 @@ if( !class_exists( 'DataMap' ) ){
 		
 		public function get_patron(){
 			
+			$patron_id = 0;
 			
-			//Is on_behalf_of set in the source data? 
+			$patron_cus_number = $this->search_data_map( 'stripe_customer_id' );
+			$patron_cus_email = $this->search_data_map( 'email' );
 			
-			//Get 
-			//$p_email = $this->data[ 'payer_email' ];
+			$patron_id =  get_user_id_by_meta( 'stripe_customer_id', $patron_cus_number);
 			
-			//$patron = get_user_by( 'email', $p_email );
-			
-			//what is the payee email? 
-			return $this->get_meta( 'patron' );
+			if( empty( $patron_id ) ){
+				$patron = get_user_by( 'email', $patron_cus_email );
+				$patron_id = $patron->ID;
+			}
+		
+			if( empty( $patron_id ) )
+				$patron_id =  get_user_id_by_meta( 'stripe_customer_email', $patron_cus_email );
+				
+			return $patron_id ?? 0;
 		}		
 				
 		
@@ -507,10 +479,7 @@ if( !class_exists( 'DataMap' ) ){
 		
 		public function get_service(){
 			
-			//$service = $this->source->get_service();
-			
-			
-			return $this->get_meta( 'service' );
+			return $this->search_data_map( 'service' );
 		}		
 				
 		
@@ -519,65 +488,36 @@ if( !class_exists( 'DataMap' ) ){
 		Description: 
 	*/	
 		
-		public function get_token(){
+		public function get_enrollment(){
 			
-			//$token = $this->source->get_token();
-			
-			return $this->get_meta( 'enrollment' ); //enrollment_token
+			return $this->search_data_map( 'enrollment' );
 			
 		}		
 				
-		
+	
+
 	/*
-		Name: get_meta
-		Description:
+		Name: get_data
+		Description: searchs for an element by key
 	*/	
 		
-		public function get_meta( $value = '' ){
+		public function get_data( $key ){
 			
-			if( !empty( $this->data[ 'metadata' ][ $value ] ) )
-				$result = $this->data[ 'metadata' ][ $value ];
+			return $this->search_data_map( $key );
+		}		
+
+	/*
+		Name: get_data_array (INCOMPLETE)
+		Description: Receives an array of data to look for. Also returns the same array with data values loaded. 
+	*/	
+		
+		public function get_data_array( $arr ){
 			
-			return ( !empty( $result ) )? $result : false ;
+			
+			
+			return $arr;
 		}		
 		
-
-				
-		
-	/*
-		Name: get_
-		Description: CAREFUL WITH THIS ONE. 
-	*/	
-		
-		public function get__(){
-			
-			
-			return 5;
-		}		
-		
-
-
-
-
-		
-	/*
-		Name: add_post_data
-		Description: 
-	*/	
-		
-		public function add_post_data( $post ){
-			
-			//What information is available to add to the object
-			
-			//service_id, enrollment_type
-			
-			 $this->data[ 'metadata' ][ 'service' ] = $post['service_id'];
-			 $this->data[ 'metadata' ][ 'enrollment' ] = $post['enrollment_type'];
-			 //$this->data[ 'metadata' ][ 'action' ] = $post['action'];
-			
-			
-		}	
-
 	/*
 		Name: 
 		Description: 
@@ -586,7 +526,8 @@ if( !class_exists( 'DataMap' ) ){
 		public function __(){
 			
 			
-		}		
+		}
+
 	
 
 	}//end of class

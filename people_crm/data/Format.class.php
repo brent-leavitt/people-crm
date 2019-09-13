@@ -26,16 +26,14 @@ if( !class_exists( 'Format' ) ){
 	// PROPERTIES
 		
 		// 
-		//public $data;
-		//public $action; 						//Action to be set. 
-		public $in;								//Incoming Data String
-		public $out; 							//Outgoing Data Array
+		private $in;							//Incoming Data String
+		private $source;						//Source of incoming data. 
+		private $action; 						//Action to be taken. 
+		private $out; 							//Outgoing Data Array
 		
-		//EXTRA FORMATTING MAY BE NEEDED TO PROCESS INComing dATA. 
-		//public $source;							//(string) The source: Stripe, PayPal, Default. 
-		public $mapped_data;						//(array) Mapped Variables from source to output. 
+		private $data_map;						//(obj) Data map class 
 		
-		public $output_format = array(
+		private $output_format = array(
 			'action' => '',						//Primary Action 
 			'service' =>  '', 					//
 			'patron' => '', 					//
@@ -118,8 +116,6 @@ if( !class_exists( 'Format' ) ){
 			
 			$this->init( $data, $source, $action );
 			
-			//dump( __LINE__, __METHOD__, $data );
-			//dump( __LINE__, __METHOD__, $source );
 		}	
 		
 
@@ -137,106 +133,127 @@ if( !class_exists( 'Format' ) ){
 	/*
 		Name: Init
 		Description: 
+			$data is the incoming data
+			$source is a string
+			$action is a string, and is determined in the webhook. 
+			
 	*/	
 		
 		private function init( $data, $source, $action ){
 			
-			//Recieve the data to be formatted from external sources. 
-			$this->in = $data;
+			$this->in 		= $data;		//Recieve the data to be formatted from external sources. 
+			$this->source 	= $source;		//Set the source of incoming data.
+			$this->action 	= $action;		//Primary action to be taken on incoming data. 
 			
-			//Core action to be taken on incoming data. 
-			$this->action = $action;
 			
-			//Set source of data, this also connects the data map to be used. 
-			if( $this->set_source( $source ) )
-				echo "TESTING DATA MAP CLASS<br />";
-				//$this->do_formatting();//Once all key values are in place, let's format the data. 
+			$this->out = $this->map_data();
 			
 			
 			
+			//End result is: mapped data ready to be taken for use. 
+			//$this->get_formatted_data();
 			
 			//dump( __LINE__, __METHOD__, $this );
 		}
 
+	
 		
-		
-
 	/*
-		Name: set_source
-		Description: This sets the source of the data, and imports the correct datamap.
+		Name: map_data
+		Description: The master method for taking third party data and prepare it to be inserted into the "mapped_data" property. 
 	*/	
 		
-		public function set_source( $source ){
+		public function map_data(){
 			
-			//We may want to set some security checks. 
+			if( empty( $this->in ) || empty( $this->source ) || empty( $this->action ) )
+				return false;
 			
-			//Set Source Name Property
-				
-				
-				//All Source Class Names will be formated with first letter cap, all else lower case: ex. Paypal. 
-				$source = ucfirst( strtolower( $source ) );
-				
-				
-				$src_data_map = 'people_crm\\data\\'.$source.'\\DataMap';
-				$data_map = new $src_data_map( $this->in );
-				
-				//set source string.
-				//$this->source = $source;
-				
-				//set mapped data
-				$this->mapped_data = $data_map->get_mapped_data();
-				
-				
-				//dump( __LINE__, __METHOD__, $this->source );
-				/* //Convert incoming data to an array. This will vary according on where the data is coming from. 
-				$this->data = $this->source->to_array(); */	
+			$arr = $this->output_format;
 			
-			//if not empty, then true. 
-			return  ( /* !empty( $this->source ) && */ !empty( $this->mapped_data ) )? true : false;
+			$source = ucfirst( strtolower( $this->source ) );
+			$data_map_class = 'people_crm\\data\\'.$source.'\\DataMap';
+			$this->data_map = new $data_map_class( $this->in );
 			
-		}
+			$arr[ 'action' ] 		= $this->action;
+			$arr[ 'patron' ] 		= $this->get_patron();
+			$arr[ 'enrollment' ] 	= $this->get_enrollment();
+			$arr[ 'service' ] 		= $this->get_service();
+			
+			foreach( $arr[ 'data' ] as $key => $val ){
+				if( is_array( $val ) ) continue;
+				$arr[ 'data' ][ $key ] = $this->get_data( $key );
+			}
+			
+			//set payee
+			$arr[ 'data' ][ 'payee' ] = $this->get_data_array( $arr[ 'data' ][ 'payee' ] );
+			
+			//set line items
+			$arr[ 'data' ][ 'line_items' ] = $this->get_data_array( $arr[ 'data' ][ 'line_items' ] );
+			
+			return $arr;
+		}		
+		
 		
 	/*
-		Name: do_formatting
+		Name: get_patron
+		Description: How to get PATRON for whom this transaction is set? 
+			
+	*/	
+		
+		public function get_patron(){
+		
+			$patron = $this->data_set->get_patron();
+				
+			return ( is_numeric( $patron ) )? $patron : -1 ;
+		}		
+				
+		
+	/*
+		Name: get_service
 		Description: 
 	*/	
 		
-		private function do_formatting(){
+		public function get_service(){
 			
+			return $this->data_set->get_service();
 			
-			//source data in array format. Why is this coming from here, and not from $this->in. 
-			$data = $this->mapped_data;
-			
-			//the starting point for the final output, a template from $output_format
-			$output = $this->output_format;
-			
-
-			//a quick check to see that each is set.
-			if( empty( $data ) || empty( $output ) ) 
-				return; 
-			
-						
-			//Map data from source to final format
-			//$output = $this->do_mapping( $output, $data );
-			
-			//dump( __LINE__, __METHOD__, $data );
-
-			//Then remove empty fields from the output array. 
-			//$output = $this->clean( $output );
-			
-			
-			
-			//Base intergrity check of data. 
-				//Is there enough incoming data to do something with? 
-			
-			//if( $this->integrity( $output ) )
-			$this->out = $output;
-			
-			
-		}
+		}		
+				
 		
+	/*
+		Name: get_enrollment
+		Description: 
+	*/	
 		
+		public function get_enrollment(){
+			
+			return  $this->data_set->get_enrollment();
+			
+		}		
 	
+		
+	/*
+		Name: get_data
+		Description: this looks for a data value in the source that matches the key. 
+	*/	
+		
+		public function get_data( $key ){
+			
+			return $this->data_set->get_data( $key );
+		}		
+		
+		
+	/*
+		Name: get_data_array
+		Description: this looks for a data value in the source that matches the key. 
+	*/	
+		
+		public function get_data_array( $arr ){
+			
+			return $this->data_set->get_data_array( $arr );
+		}		
+		
+		
 	/*
 		Name: integrity
 		Description: Checks the integrity of the outputted data. If key fields are in place then return true. 
@@ -254,174 +271,6 @@ if( !class_exists( 'Format' ) ){
 			return true; 
 		}
 		
-		
-		
-	/*
-		Name: do_mapping
-		Description: This method will only look for fields as set in the output_format. If it's not there and not mapped to a field from the source data, it doesn't get processed at this point in time. 
-	*/	
-		
-		public function do_mapping( $output, $data){
-			//Then for each field in the output format, look for a suitable input. 
-			
-			foreach( $output as $o_key => $o_val ){
-
-				//generate potential method name.
-				$set_method = 'set_'. $o_key; 
-				
-				//look for method by $o_key name; 
-				if( method_exists( $this, $set_method ) ){ 
-					$output[ $o_key ] = $this->$set_method();
-					
-					//dump( __LINE__, __METHOD__, $o_key );
-					//dump( __LINE__, __METHOD__, $output[ $o_key ] );
-					continue;
-				}
-				
-				//if is an array, go recursively deeper. 
-				if( is_array( $o_val ) ){
-					$output[ $o_key ]  = $this->do_mapping( $o_val, $data_map, $data );
-					continue; 
-				}
-				
-				/* //if no, run data_map on value
-				if( isset( $data_map[ $o_key ] ) ){		
-					if( ( $found = $this->find_in_source( $data_map[ $o_key ], $data ) ) !== false ){
-						$output[ $o_key ] = $found;
-						//dump( __LINE__, __METHOD__, $o_key );
-						//dump( __LINE__, __METHOD__, $output[ $o_key ] );
-					}
-				}  */
-			}
-			
-			return ( $output )?? '' ; 
-			
-		}		
-		 
-		
-	/*
-		Name: set_action
-		Description: 
-	*/	
-		
-		public function set_action(){
-			
-			//Pull the presumable action from the source. 
-			$this->output_format[ 'action' ] = $this->action;
-			
-			//Does data support requested action?
-			
-			//How do I figure this out? 
-			
-			return $this->output_format[ 'action' ];
-			
-		}		
-				
-		
-	/*
-		Name: set_patron
-		Description: How to get PATRON for whom this transaction is set? 
-		Send the user ID as a part of the processing data. That the surest way to do this. 
-		- How to get that? 
-		- On the Cashier Page that you are proposing, the user ID needs to be set, 
-			- so login required? 
-			- Guest Payments? No, because you only pay when you are receiving account access to something. 
-			- Pay on behalf of someone else, yes! Via Email address. 
-		- Is it better to pass a system-unique ID or an email address (which is more of a universal identifier)?
-			- SYSTEM ID-> Some How Encrypted. 
-	*/	
-		
-		public function set_patron(){
-			//INCOMPLETE, not sure what else we need to add here. 
-			
-			$patron = $this->in->patron;
-			
-			/* $patron_id = nn_crypt( $p_value, 'd' );
-			
-			//Check if user exists? 
-			$patron = get_user_by( 'id', $patron_id ); */
-			
-			//what is the payee email? 
-				
-			return ( is_numeric( $patron ) )? $patron : -1 ;
-		}		
-				
-		
-	/*
-		Name: set_service
-		Description: 
-	*/	
-		
-		public function set_service(){
-			
-			$service = $this->in->service;
-			
-			
-			return $service;
-		}		
-				
-		
-	/*
-		Name: set_token
-		Description: 
-	*/	
-		
-		public function set_token(){
-			
-			$token = $this->in->token;
-			
-			return ( $token )?? null;
-		}		
-	
-
-		
-		
-	/*
-		Name: set_src_data
-		Description: This sets the inbound code to the end of the formatted array. 
-	*/	
-		
-		public function set_src_data(){
-			
-			return $this->in;
-			
-		}
-
-	
-		
-	/*
-		Name: set_
-		Description: CAREFUL WITH THIS ONE. 
-	*/	
-		
-		public function set__(){
-			
-			return 5;
-		}		
-		
-		
-	/*
-		Name: find_in_source
-		Description: looking in the source object for the requested value.  (Brent Note: I don't think this is any longer relevant, because the data_map has nested arrays in it, instead of just a flat, one-layer array. 
-		params: 
-			- $key: the key name from the data_map that we're looking for. 
-			- $data: the source data in which the value is being searched for. 
-		
-	*/	
-		
-		public function find_in_source( $key, $data ){
-			
-			$result = '';
-			//If this doesn't return a result. pop off the first word, and look deeper. 
-			if( empty( $result = isset( $data->$key )? $data->$key : '' ) ){
-				$pos = strpos( $key, '_' );
-				$key_one = substr( $key, 0, $pos  );
-				$key_two = substr( $key, $pos + 1 );
-				$result = isset( $data->$key_one->$key_two )? $data->$key_one->$key_two : '' ;
-			} 
-			return ( $result ) ?? false ; 
-		}	
-
 		
 	/*
 		Name: clean
@@ -441,33 +290,6 @@ if( !class_exists( 'Format' ) ){
 				
 			}
 			return $data;
-		}
-		
-		
-	/*
-		Name: add_post_data
-		Description: 
-	*/	
-		
-		public function add_post_data( $post ){
-			
-			$this->source->add_post_data( $post );
-		}
-		
-	
-	/*
-		Name: set_format (deprecate?)
-		Description: 
-	*/	
-		
-		public function do_format(){
-			
-			
-			$this->do_formatting();
-			
-			//final output is $out array. 	
-			return $this->out ?? false; 
-			
 		}	
 		
 
