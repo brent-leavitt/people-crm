@@ -29,6 +29,7 @@ if( !class_exists( 'DataMap' ) ){
 			'charge',
 			'customer',
 			'invoice',
+			'line_item',
 			'source',
 			'subscription',
 			'subscription_item',
@@ -50,6 +51,7 @@ if( !class_exists( 'DataMap' ) ){
 			'gross_amount' 	=> 'amount', 			//Transaction Gross Amount
 /* 			'trans_fee'		=> '',  	 		//Transaction Fee
 			'net_amount' 	=> '',		 		//Amount Collected After Fees */
+			'reference_id' 	=> 'invoice', 		
 			'tp_id' 		=> 'id', 		
 			'full_name' 	=> 'billing_details_name',			//
 			'address' 		=> 'billing_details_address_line1',	//	
@@ -61,7 +63,7 @@ if( !class_exists( 'DataMap' ) ){
 			'email' 		=> 'billing_details_email',				//	
 			'phone' 		=> 'billing_details_phone',			//	
 			'on_behalf_of' 	=> 'on_behalf_of',	
-			'stripe_customer_id' => 'customer',
+			'tp_user_id' => 'customer',
 			
 			//email_address 	
 			
@@ -106,9 +108,8 @@ if( !class_exists( 'DataMap' ) ){
 			'country' 		=> 'customer_adddres_country',			//	
 			'email' 		=> 'customer_email',				//	
 			'phone' 		=> 'customer_phone',			//	
-			'stripe_customer_id' => 'customer',
+			'tp_user_id' => 'customer',
 			
-			'' => '', //
 			'' => '', //
 		
 		];
@@ -119,8 +120,8 @@ if( !class_exists( 'DataMap' ) ){
 			'subscription_status' => 'status', //
 			'enrollment' => 'metadata_enrollment', //
 			'service' => 'metadata_service', //
-			'stripe_customer_id' => 'customer',
-			'' => '', //
+			'tp_user_id' => 'customer',
+			'invoice_id' => 'last_invoice', //
 			
 		
 		];
@@ -132,13 +133,26 @@ if( !class_exists( 'DataMap' ) ){
 			'' => '', //
 			
 		
+		];		
+		//https://stripe.com/docs/api/line_item/object
+		private $line_item_data_map = [ //'nn_value' => '3rd_party_value'
+			'line_item_id' => 'id', //
+			'enrollment' => 'metadata_enrollment', //
+			'service' => 'metadata_service', //
+			'' => '', //
+			
+		
 		];
 
 		
 		//https://stripe.com/docs/api/plan/object
 		private $plan_data_map = [ //'nn_value' => '3rd_party_value'
 			'subscription_plan_id'	=> 'id', //		
-			''	=> '', //		
+			'gross_amount'	=> 'amount', //	
+			'currency' => 'currency', //
+			'trans_descrip' => 'nickname', //
+			'' => '', //
+			'' => '', //
 			
 		
 		];
@@ -153,10 +167,10 @@ if( !class_exists( 'DataMap' ) ){
 			'zip' 			=> 'address_zip',	//	
 			'country' 		=> 'address_country',	//	
 			'cc_type' 		=> 'brand',	//paypal, visa, mastercard, etc. 
-			'cc_card' 		=> 'last4',	 //last4 of 
+			'cc_four' 		=> 'last4',	 //last4 of 
 			'cc_exp_month' 	=> 'exp_month', //expiration date. 
 			'cc_exp_year'	 => 'exp_year',		//expiration date. 
-			'stripe_customer_id' => 'customer'
+			'tp_user_id' => 'customer'
 		
 		];
 		
@@ -164,6 +178,18 @@ if( !class_exists( 'DataMap' ) ){
 		//https://stripe.com/docs/api/sources/object
 		//Presently contains no data that we need. Maybe in the future
 		private $source_data_map = [ //'nn_value' => '3rd_party_value'
+			'city' => 'address_city', //
+			'country' => 'address_country', //
+			'address' => 'address_line1', //
+			'address1' => 'address_line2', //
+			'state' => 'address_state', //
+			'zip' => 'address_zip', //
+			'cc_type' => 'brand', //
+			'cc_four' => 'last4', //
+			'cc_exp_mo' => 'exp_month',	//expiration month. 
+			'cc_exp_yr' => 'exp_year',
+			'full_name' => 'name', //
+			'' => '', //
 			
 		
 		];
@@ -431,18 +457,18 @@ if( !class_exists( 'DataMap' ) ){
 			
 			$value = '';
 			
-			if( empty( $this->data_map ) ) return false;
+			if( empty( $this->data_set ) ) return '';
 			
-			$dm_keys = array_keys( $this->data_map );
+			$dm_keys = array_keys( $this->data_set );
 			
-			for( $i = 0; $i < count( $this->data_map ); $i++ ){
+			for( $i = 0; $i < count( $this->data_set ); $i++ ){
 				$data_map_key = $dm_keys[ $i ];
-				foreach( $this->data_map[ $data_map_key ] as $k => $val ){
+				foreach( $this->data_set[ $data_map_key ] as $k => $val ){
 					if( $k === $key )
 						return $val;
 				}
 			}	
-			return false; 
+			return ''; 
 		}
 
 		
@@ -453,14 +479,16 @@ if( !class_exists( 'DataMap' ) ){
 		
 		public function get_patron(){
 			
+			
+			
 			$patron_id = 0;
 			
-			$patron_cus_number = $this->search_data_map( 'stripe_customer_id' );
+			$patron_cus_number = $this->search_data_map( 'tp_user_id' );
 			$patron_cus_email = $this->search_data_map( 'email' );
 			
-			$patron_id =  get_user_id_by_meta( 'stripe_customer_id', $patron_cus_number);
+			$patron_id =  get_user_id_by_meta( 'stripe_user_id', $patron_cus_number);
 			
-			if( empty( $patron_id ) ){
+			if( empty( $patron_id ) && !empty( $patron_cus_email ) ){
 				$patron = get_user_by( 'email', $patron_cus_email );
 				$patron_id = $patron->ID;
 			}
@@ -503,17 +531,21 @@ if( !class_exists( 'DataMap' ) ){
 		
 		public function get_data( $key ){
 			
-			return $this->search_data_map( $key );
+			$result = $this->search_data_map( $key );
+			
+			//dump( __LINE__, __METHOD__, $key .' -> '. $result );
+			return $result;
 		}		
 
 	/*
-		Name: get_data_array (INCOMPLETE)
+		Name: get_data_array 
 		Description: Receives an array of data to look for. Also returns the same array with data values loaded. 
 	*/	
 		
 		public function get_data_array( $arr ){
 			
-			
+			foreach( $arr as $key => $val )
+				$arr[ $key ] = $this->search_data_map( $key );
 			
 			return $arr;
 		}		

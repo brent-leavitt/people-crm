@@ -35,30 +35,15 @@ if( !class_exists( 'Format' ) ){
 		
 		private $output_format = array(
 			'action' => '',						//Primary Action 
-			'service' =>  '', 					//
 			'patron' => '', 					//
+			'service' =>  '', 					//
 			'token' => '', 						//
 			'data' => array(					//The data key may be replaced with the name of the Primary Action. 
-				'type' => '', 					//type of data = reminder (NEEDED?)
-				'template' => 0, 				//what notice (template) is being sent?
-				'template_vars' => array(),
 				'create_date' => '', 			//Create Date or issue Date
-				'due_date' => '', 				//Due Date
-				'trans_type' => '', 			//Transaction Type, like "charge", "payment", "refund", etc. 
-				'trans_status' => '',			//Transaction Status
-				'trans_descrip' => '',			//Description of the Transaction
 				'currency' => '',				//Currency (only accepting USD)
-				'subtotal' => '',		 		//Subtotal before taxes
 				'discount' => '',		 		//Discount on Subtotal
-				'sales_tax' => '',		 		//Sales Tax
+				'due_date' => '', 				//Due Date
 				'gross_amount' => '', 			//Transaction Gross Amount
-				'trans_fee' => '',  	 		//Transaction Fee
-				'net_amount' => '',		 		//Amount Collected After Fees
-				'reference_ID' => '',	 		//Reference ID
-				'reference_type' => '',			//Reference Type
-				'tp_name' => '', 				//ThirdParty Name, like "stripe" or PayPal 
-				'tp_id' => '', 					//ThirdParty Transaction ID
-				
 				'line_items' => array(
 					array(
 						'li_id' => '', 			//Item ID
@@ -71,6 +56,7 @@ if( !class_exists( 'Format' ) ){
 					),
 					//etc...
 				),
+				'net_amount' => '',		 		//Amount Collected After Fees
 				'payee' => array(
 					'full_name' => '',			//
 					'user_name' => '', 			//
@@ -85,13 +71,28 @@ if( !class_exists( 'Format' ) ){
 					'country' => '',			//	
 					'email' => '',				//	
 					'phone' => '',				//	
-					'type' => '',				//paypal, visa, mastercard, etc. 
-					'card' => '',				//last4 of 
-					'exp' => '',				//expiration date. 
+					'cc_type' => '',				//paypal, visa, mastercard, etc. 
+					'cc_four' => '',				//last4 of 
+					'cc_exp_mo' => '',				//expiration month. 
+					'cc_exp_yr' => '',				//expiration year. 
 					'on_behalf_of' => '',		//email_address 
 					'password' => '',			//?
 				),
+				'reference_id' => '',	 		//Reference ID
+				'reference_type' => '',			//Reference Type
+				'sales_tax' => '',		 		//Sales Tax
 				'src_data' => '',				//JSON String of Transactional Source Data. 
+				'subtotal' => '',		 		//Subtotal before taxes
+				'template' => 0, 				//what notice (template) is being sent?
+				'template_vars' => array(),
+				'tp_id' => '', 					//ThirdParty Transaction ID
+				'tp_name' => '', 				//ThirdParty Name, like "stripe" or PayPal 
+				'tp_type' => '', 				//ThirdParty Transaction Type, like "charge", "payment", "refund", etc. 
+				'tp_user_id' => '', 				//ThirdParty User ID
+				'trans_status' => '',			//Transaction Status
+				'trans_descrip' => '',			//Description of the Transaction
+				'trans_fee' => '',  	 		//Transaction Fee
+				
 				'' => '',						// (what else)?
 			)
 		);
@@ -148,12 +149,15 @@ if( !class_exists( 'Format' ) ){
 			
 			$this->out = $this->map_data();
 			
+			//Add integrity check
+			
+			//Add clean 
 			
 			
 			//End result is: mapped data ready to be taken for use. 
 			//$this->get_formatted_data();
 			
-			//dump( __LINE__, __METHOD__, $this );
+			dump( __LINE__, __METHOD__, $this->out );
 		}
 
 	
@@ -174,11 +178,16 @@ if( !class_exists( 'Format' ) ){
 			$data_map_class = 'people_crm\\data\\'.$source.'\\DataMap';
 			$this->data_map = new $data_map_class( $this->in );
 			
+			//Set PRIMARY values
+			
 			$arr[ 'action' ] 		= $this->action;
 			$arr[ 'patron' ] 		= $this->get_patron();
-			$arr[ 'enrollment' ] 	= $this->get_enrollment();
+			$arr[ 'token' ] 		= $this->get_enrollment();
 			$arr[ 'service' ] 		= $this->get_service();
 			
+			
+			//Set DATA values
+						
 			foreach( $arr[ 'data' ] as $key => $val ){
 				if( is_array( $val ) ) continue;
 				$arr[ 'data' ][ $key ] = $this->get_data( $key );
@@ -187,8 +196,17 @@ if( !class_exists( 'Format' ) ){
 			//set payee
 			$arr[ 'data' ][ 'payee' ] = $this->get_data_array( $arr[ 'data' ][ 'payee' ] );
 			
+			//Because our system only processes single line item transactions, this works. If ever to process multiple. This would need to be updated. This, along with a bunch of other code. 
 			//set line items
-			$arr[ 'data' ][ 'line_items' ] = $this->get_data_array( $arr[ 'data' ][ 'line_items' ] );
+			$arr[ 'data' ][ 'line_items' ][0] = $this->get_data_array( $arr[ 'data' ][ 'line_items' ][0] );
+			
+			
+			//Set ThirdParty
+			$arr[ 'data' ][ 'tp_name' ] = $this->source;
+			
+			//Set Source data
+			$arr[ 'data' ][ 'src_data' ] = $this->in;
+			
 			
 			return $arr;
 		}		
@@ -202,7 +220,7 @@ if( !class_exists( 'Format' ) ){
 		
 		public function get_patron(){
 		
-			$patron = $this->data_set->get_patron();
+			$patron = $this->data_map->get_patron();
 				
 			return ( is_numeric( $patron ) )? $patron : -1 ;
 		}		
@@ -215,7 +233,7 @@ if( !class_exists( 'Format' ) ){
 		
 		public function get_service(){
 			
-			return $this->data_set->get_service();
+			return $this->data_map->get_service();
 			
 		}		
 				
@@ -227,7 +245,7 @@ if( !class_exists( 'Format' ) ){
 		
 		public function get_enrollment(){
 			
-			return  $this->data_set->get_enrollment();
+			return  $this->data_map->get_enrollment();
 			
 		}		
 	
@@ -239,7 +257,7 @@ if( !class_exists( 'Format' ) ){
 		
 		public function get_data( $key ){
 			
-			return $this->data_set->get_data( $key );
+			return $this->data_map->get_data( $key );
 		}		
 		
 		
@@ -250,7 +268,7 @@ if( !class_exists( 'Format' ) ){
 		
 		public function get_data_array( $arr ){
 			
-			return $this->data_set->get_data_array( $arr );
+			return $this->data_map->get_data_array( $arr );
 		}		
 		
 		
