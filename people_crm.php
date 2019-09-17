@@ -46,6 +46,9 @@ if( !class_exists( 'People_CRM' ) ){
 			//setup Custom Post Types
 			$this->set_cpts();
 			
+			//Setup Menus
+			$menus = new init\Menu();
+			
 			
 			//Crons schedule.
 			//$cron = new init\Cron();
