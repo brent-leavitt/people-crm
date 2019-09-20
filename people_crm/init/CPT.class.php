@@ -25,7 +25,6 @@ if( !class_exists( 'CPT' ) ){
 	class CPT{
 		
 		public $post_types = array(
-		/* 	'guide', */
 			'receipt',
 			'invoice',
 			'notice',
@@ -46,24 +45,6 @@ if( !class_exists( 'CPT' ) ){
 			//if network and site_id equals NN_BASESITE then declare these CPTS. 
 			
 			
-			//Guide
-			/* $guide	= new CPT( 
-				array( 
-					'post_type'=>'guide',
-					'description'=>'enrollment actions or services used for assigning behaviours to tokens',
-					'menu_icon'=>'index-card', 
-					'hierarchical' => false,
-					'exclude_from_search' => true,
-					'supports' => array( 
-						'title', 
-						'editor', 
-						'comments', 
-						'author', 
-						'revisions' 
-					)
-				) 
-			); */
-			
 			$receipt =  new nCPT( 
 				array( 
 					'post_type'=>'receipt',
@@ -72,6 +53,7 @@ if( !class_exists( 'CPT' ) ){
 					'menu_icon'=>'cart', 
 					'hierarchical' => false,
 					'exclude_from_search' => false,
+					'show_in_menu' => 'finance',
 					'supports' => array( 
 						'title', 
 						'editor', 
@@ -90,6 +72,7 @@ if( !class_exists( 'CPT' ) ){
 					'menu_icon'=>'media-spreadsheet', 
 					'hierarchical' => false,
 					'exclude_from_search' => true,
+					'show_in_menu' => 'finance',
 					'supports' => array( 
 						'title', 
 						'editor', 
@@ -110,6 +93,7 @@ if( !class_exists( 'CPT' ) ){
 					'menu_icon'=>'email', 
 					'hierarchical' => false,
 					'exclude_from_search' => true,
+					'show_in_menu' => 'communications',
 					'supports' => array( 
 						'title', 
 						'editor', 
@@ -130,6 +114,7 @@ if( !class_exists( 'CPT' ) ){
 					'menu_icon'=>'admin-page', 
 					'hierarchical' => false,
 					'exclude_from_search' => true,
+					'show_in_menu' => 'communications',
 					'supports' => array( 
 						'title', 
 						'editor', 
@@ -148,6 +133,7 @@ if( !class_exists( 'CPT' ) ){
 					'menu_icon'=>'backup', 
 					'hierarchical' => false,
 					'exclude_from_search' => true,
+					'show_in_menu' => 'reports',
 					'supports' => array( 
 						'title', 
 						'editor', 
