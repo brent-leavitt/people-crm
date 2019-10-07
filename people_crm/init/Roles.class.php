@@ -4,7 +4,7 @@
 people_crm\init\Roles
 
 Roles - An Initializing Class for People_CRM Plugin
-Last Updated on 18 Jul 2019
+Last Updated on 2 Oct 2019
 -------------
 
   Description: Roles and Caps Management
@@ -16,16 +16,20 @@ Last Updated on 18 Jul 2019
 
 namespace people_crm\init;	
 
+use \nn_network\init\Roles as nRoles;
+
 // Exit if accessed directly
 if ( !defined('ABSPATH')) exit;
 	
 	
 if( !class_exists( 'Roles' ) ){
 	
-	class Roles{
+	class Roles extends nRoles {
 
-	
-		public $roles = array(
+		
+		// Properties
+
+		public $add = array(
 			'inactive', 		// Not interested in any services, may have requested no contact
 			'reader', 			// Newsletter Signups start here. 
 			'learner',			// Starting Level for Library
@@ -44,60 +48,22 @@ if( !class_exists( 'Roles' ) ){
 
 		
 		//These default roles are to be removed from the CRM.
-		public $defaults = array(
+		public $remove = array(
 			'subscriber',
 			'contributor',
 			'author',
 			'editor'
 		);
 		
+		public $default_role = 'reader';
 		
-		public function __construct(){
-			
-			$roles = array_reverse( $this->roles ); 
-			
-			//All roles to be removed.
-			$remove_roles = array_merge( $roles, $this->defaults  );
-			$this->remove_roles( $remove_roles );
-			
-			//Add CRM roles. 
-			$this->add_roles( $roles );
+		
+		
+		//Methods
 
-			//Set Default Role: 
-			update_option( 'default_role', 'reader' );
-			
-		}
-
-
-		public function add_roles( $roles ){
-			global $admin_notices;
-
-			foreach ($roles as $role ){		
-				
-				$result = add_role( $role, ucfirst( $role ) );
-				
-				if ( null !== $result ) {
-					$admin_notices .= " New role '$role' created! <br />";
-				}
-				else {
-					$admin_notices .= "Oh... the '$role' role already exists. <br />";
-				}
-			}
-			
-		}
-
-
-		public function remove_roles( $roles ){
-			
-			foreach( $roles as $role ){
-				if( get_role( $role ) ){
-					  remove_role( $role );
-				}
-			}
-			
-		}
-
-
+		/*
+			No new methods added in this class. All methods are the same as the parent class. 
+		*/
 	
 	}
 	

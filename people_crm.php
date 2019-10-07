@@ -41,7 +41,7 @@ if( !class_exists( 'People_CRM' ) ){
 			/*	$email_settings = new init\Email();		//Email Settings
 				 */
 			
-			$roles = new init\Roles();
+			
 			
 			//setup Custom Post Types
 			$this->set_cpts();
@@ -114,8 +114,8 @@ if( !class_exists( 'People_CRM' ) ){
 			
 		}		
 		public function stop_crons(){
-			$cron = new init\Cron();
-			$cron->remove_cron();
+			/* $cron = new init\Cron();
+			$cron->remove_cron(); */
 			
 		}
 		
@@ -154,6 +154,8 @@ if( !class_exists( 'People_CRM' ) ){
 			$this->set_cpts();
 					
 			flush_rewrite_rules();	//Clear the permalinks after CPTs have been registered
+			
+			$roles = new init\Roles();
 		
 		}
 		
@@ -168,7 +170,7 @@ if( !class_exists( 'People_CRM' ) ){
 			flush_rewrite_rules();	// clear the permalinks to remove our post type's rules from the database
 			
 			//Remove tokens from all sites. 
-			$tokens = new init\Token();
+			//$tokens = new init\Token();
 			//$tokens->remove();
 			
 		}
