@@ -31,6 +31,7 @@ if( !class_exists( 'People_CRM' ) ){
 			add_action( 'admin_init', array( $this, 'admin_init' ));
 			add_action( 'admin_menu', array( $this, 'admin_menus' ));
 			
+			
 		}
 		
 		
@@ -54,9 +55,6 @@ if( !class_exists( 'People_CRM' ) ){
 			//$cron = new init\Cron();
 			//$cron->schedule();
 			
-			//setup activation and deactivation hooks
-			register_activation_hook( __FILE__, array( $this, 'activation' ) );
-			register_deactivation_hook( __FILE__, array( $this, 'deactivation' ) );
 		
 		}
 		
@@ -151,11 +149,16 @@ if( !class_exists( 'People_CRM' ) ){
 		public function activation(){
 		
 			//Setup Custom Post Types
-			$this->set_cpts();
+			/* $this->set_cpts();
 					
 			flush_rewrite_rules();	//Clear the permalinks after CPTs have been registered
 			
-			$roles = new init\Roles();
+			$roles = new init\Roles(); */
+			
+			//Add Database tables. 
+			//$db = new init\Database();
+			
+			//$db->setup();
 		
 		}
 		
@@ -173,6 +176,7 @@ if( !class_exists( 'People_CRM' ) ){
 			//$tokens = new init\Token();
 			//$tokens->remove();
 			
+			
 		}
 		
 		
@@ -181,9 +185,30 @@ if( !class_exists( 'People_CRM' ) ){
 	}
 }
 
+function people_crm_activation(){
+
+
+}		
+			//Setup Custom Post Types
+			/* $this->set_cpts();
+					
+			flush_rewrite_rules();	//Clear the permalinks after CPTs have been registered
+			
+			$roles = new init\Roles(); */
+			
+			//Add Database tables. 
+			//$db = new init\Database();
+			
+			//$db->setup();
+		
+
+
+
 
 $the_people = new People_CRM();
 
+//register_activation_hook( __FILE__,  'people_crm_activation' );
+//register_deactivation_hook( __FILE__, array( 'People_CRM', 'deactivation' ) );
 
 
 

@@ -15,6 +15,7 @@ Last Updated 19 Jul 2019
 namespace people_crm\data\Stripe;
 
 use \people_crm\data\Format as Format;
+
 use \people_crm\core\Action as Action;
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
@@ -24,19 +25,19 @@ if( !class_exists( 'WebHook' ) ){
 
 	// PROPERTIES
 			
-		public $action = 'record'; //Default is to at least make a record. 
+		//public $action = 'record'; //Default is to at least make a record. 
 			
 		public $actionable_responses = array(
-			'charge_succeeded' 				=> 'receipt',
-			'charge_refunded' 				=> 'receipt',
-			'charge_expired' 				=> 'receipt',
-			'charge_failed'					=> 'receipt',
-			'customer_subscription_created' => 'enrollment',
-			'customer_subscription_deleted' => 'enrollment',
-			'customer_subscription_updated' => 'enrollment',
-			'invoice_created' 				=> 'invoice',
-			'invoice_payment_succeeded' 	=> 'invoice',
-			'source_failed' 				=> 'enrollment',
+			'charge_succeeded',
+			'charge_refunded',
+			'charge_expired',
+			'charge_failed',
+			'customer_subscription_created',
+			'customer_subscription_deleted',
+			'customer_subscription_updated',
+			'invoice_created',
+			'invoice_payment_succeeded',
+			'source_failed',
 			
 		);
 		
@@ -92,15 +93,23 @@ if( !class_exists( 'WebHook' ) ){
 			//Full list of all possible events to act upon!
 			// Handle the event
 			
-			if( !array_key_exists( $eventType, $this->actionable_responses ) || empty( $event->data ) )
+			if( !in_array( $eventType, $this->actionable_responses ) || empty( $event->data ) )
 				return false;
 				
-			//Set primary action
-			$this->action = $this->actionable_responses[ $eventType ]; //
+			//If is relevant data, store in database, then send to gate object. 	
+				
+			$sent = $this->send_to_db( $event );
 			
-			$format = new Format( $event->data[ "object" ] , 'Stripe', $this->action ); // contains the data from a Stripe event.
+			if( $sent !== false )
+			//Set primary action
+			//$this->action = $this->actionable_responses[ $eventType ]; //
+			
+			$format = new Format( $event->data[ "object" ] , 'Stripe' ); // contains the data from a Stripe event.
 		
-			$action = new Action( $format->out );
+			//Send to Gate
+			$gate = new Gate( $format->out );
+			
+			//DISCARD: $action = new Action( $format->out );
 			
 		}
 				
@@ -128,6 +137,35 @@ if( !class_exists( 'WebHook' ) ){
 		}
 		
 					
+	/*
+		Name: send_to_db
+		Description: 
+	*/	
+		
+		public function send_to_db( $event ){
+			global $wpdb;
+			
+			$id = $event->id;
+			$timestamp = date( 'Y-m-d H:i:s', $event->created );
+			$table = $wpdb->prefix."webhooks";
+			$query = "SELECT * FROM {$table} WHERE event_id = {$id}";
+			
+			//if event has already been sent and stored: 
+			if( $wpdb->get_results( $query, OBJECT ) ) return;
+			
+			$data = [
+				'event_id' => $id,
+				'timestamp' => $timestamp,
+				'data' => json_encode( $event ),
+			];
+			
+			return $wpdb->insert( $table, $data );
+			
+		}
+				
+
+
+				
 	/*
 		Name: 
 		Description: 

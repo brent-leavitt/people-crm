@@ -44,7 +44,7 @@ if( !class_exists( 'Action' ) ){
 
 	/*
 		Name: __Construct
-		Description: Incoming data has been formated by the /misc/DataFormat class.
+		Description: Incoming data has been formated by the /data/Format class. If is thirdparty data it is also gated before being sent to the backend.
 	*/	
 		
 		public function __construct( $data ){

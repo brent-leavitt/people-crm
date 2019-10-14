@@ -113,9 +113,9 @@ if( !class_exists( 'Format' ) ){
 		Description: 
 	*/	
 		
-		public function __construct( $data, $source, $action ){
+		public function __construct( $data, $source ){
 			
-			$this->init( $data, $source, $action );
+			$this->init( $data, $source );
 			
 		}	
 		
@@ -140,12 +140,10 @@ if( !class_exists( 'Format' ) ){
 			
 	*/	
 		
-		private function init( $data, $source, $action ){
+		private function init( $data, $source ){
 			
 			$this->in 		= $data;		//Recieve the data to be formatted from external sources. 
 			$this->source 	= $source;		//Set the source of incoming data.
-			$this->action 	= $action;		//Primary action to be taken on incoming data. 
-			
 			
 			$this->out = $this->map_data();
 			
