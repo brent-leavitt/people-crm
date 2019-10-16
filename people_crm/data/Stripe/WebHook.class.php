@@ -41,6 +41,7 @@ if( !class_exists( 'WebHook' ) ){
 			
 		);
 		
+		
 		public $test_data = '';
 			
 	// Methods
@@ -103,11 +104,12 @@ if( !class_exists( 'WebHook' ) ){
 			if( $sent !== false )
 			//Set primary action
 			//$this->action = $this->actionable_responses[ $eventType ]; //
+
 			
 			$format = new Format( $event->data[ "object" ] , 'Stripe' ); // contains the data from a Stripe event.
 		
-			//Send to Gate
-			$gate = new Gate( $format->out );
+			//Send to Gate Handler
+			$handler = new GateHandler( $format->out );
 			
 			//DISCARD: $action = new Action( $format->out );
 			
@@ -162,9 +164,7 @@ if( !class_exists( 'WebHook' ) ){
 			return $wpdb->insert( $table, $data );
 			
 		}
-				
-
-
+		
 				
 	/*
 		Name: 

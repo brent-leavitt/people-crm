@@ -1,0 +1,13 @@
+Service Guides - READ ME
+Last Updated 11 Jan 2019
+-------------------------
+
+Service Guides are the sets of instructions that are setup by an administrator to outline what automated tasks the Cron-like system perform on a regular basis. 
+
+These are the only custom post type that is declared at the network level, all other CPT's though used in the network are only declared at a site specific level. (Maybe Invoice and Receipt CPTs should be network-wide...) 
+
+They interact with Enrollment Tokens. (I will offer more information here as they are developed.) 
+
+See also:
+\code\code plans\code_plans_nbcs_network\20181004_Progress_Assessment.txt
+\code\code plans\code_plans_nbcs_network\20181102_enrollment_token_handling.txt

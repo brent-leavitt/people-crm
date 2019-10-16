@@ -38,11 +38,12 @@ if( !class_exists( 'Database' ) ){
 					[ 
 						'table_name' => 'gate', 
 						'query' => [
-							'id' => 'mediumint(9) NOT NULL AUTO_INCREMENT',
+							'id' => 'mediumint(15) NOT NULL AUTO_INCREMENT',
 							'timestamp' => "datetime DEFAULT '0000-00-00 00:00:00' NOT NULL",
-							'action' => 'tinytext NOT NULL',
+							'reference_id' => 'varchar(40) NOT NULL',
+							'action' => 'varchar(10) NOT NULL',
 							'data' => 'mediumtext NOT NULL',
-							'sent' => 'boolean DEFAULT 0 NOT NULL',
+							'sent' => 'varchar(15) NOT NULL',
 						],
 						'primary_key' => 'id'
 					]

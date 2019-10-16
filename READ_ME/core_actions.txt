@@ -1,0 +1,53 @@
+Core Actions - READ ME
+People CRM Plugin 
+Last Updated on 14 Oct 2019
+---------------------------
+
+The Actions Class represents a switchboard that decides on what to do with the incoming data, based on details/instructions sent to the action class. The series of actions available represents all available action the backend process of the system are able to execute with regards to transactions (paid and non-paid). Actions are organized in bottom to top set of features with the bottom action being the lowest common denominator, an action that is performed by all incoming transactions (a record is made). Actions are then organized in something of a reversed cascading fashion building on top of one another, with the top-most action being the one that is performed first. 
+
+Actions taken in this series of steps do not "return and report", rather they are execution only steps, meaning that they perform a task and then move on to the next task until all task are complete. Integrity of incoming data therefore is extremely important by the time the data reaches this "sealed" loop. For example, registration of a new user doesn't allow for error handling. Any potential errors are already checked before entering the loop. 
+
+Errors that are caught within the loop are reported to the record action which is processed the end of the loop. 
+
+
+Below are some examples of top to bottom (left to right) sets of actions that are taken: 
+
+Record Action: 
+	Lowest Common Denominator: 
+	- A record of the transaction is created and stored (mostly for reference sake). No other actions are taken.
+	
+	( incoming data )-->( record.class )
+	
+Notification Sent: 
+	- This can be either a manual or automatic notification. Data is prepared and sent to issue a notice only. 
+	
+	( incoming data )-->( notification.class )-->( record.class )
+	
+Role Set: 
+	- This assess the information that has been presented and determines if a new role needs to be assigned to the existing patron. Then an action hook is set to make that information to other plugins in the system that would listen for such information. 
+	( incoming data )-->( role.class )-->( notification.class [optional] )-->( record.class )
+	
+	
+Enrollment Token Change: 
+	- A change in enrollment has been invoked. Probably an exiration notice envoked by user or cron job.
+
+	( incoming data )-->( token.class )-->( role.class [ optional ] )-->( notification.class [optional] )-->( record.class )
+	
+Service Change: 
+	- Creation (or deletion) of a service, which can instigated by either paid or non-paid transaction, such as a registration or a newsletter subscription. These are higher level actions and will typically envoke a notification. 
+
+	( incoming data )-->( service.class )-->( token.class )-->( role.class [ optional ] )-->( notification.class )-->( record.class )
+	
+Receipts: 
+	- There may be rare cases where receipts are generated, but an invoice is not created. It would still affect the cascading of events that follows, but may also skip services/tokens. 
+
+	( incoming data )-->( receipt.class )-->( service.class [ optional ] )-->( token.class [ optional ] -->( role.class [ optional ] ))-->( notification.class )-->( record.class )
+
+Invoices: 
+	- This is the most frequent starting point for any monetary transaction. Receipts are optional in that they are only issued when money is being exchanged. (for example, A cancellation would not generate a receipt. )
+
+	( incoming data )-->( invoice.class )-->( receipt.class [ optional ] )-->( service.class [ optional ] )-->( token.class )-->( role.class [ optional ] )-->( notification.class )-->( record.class )
+	
+Patron Registrations: 
+	- This is called for the rare event in which no patron account is found for the incoming transaction. Because every transaction must be connected to a patron, a patron must be connected to the transaction. 
+	

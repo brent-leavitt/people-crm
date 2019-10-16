@@ -51,7 +51,7 @@ if( !class_exists( 'DataMap' ) ){
 			'gross_amount' 	=> 'amount', 			//Transaction Gross Amount
 /* 			'trans_fee'		=> '',  	 		//Transaction Fee
 			'net_amount' 	=> '',		 		//Amount Collected After Fees */
-			'reference_id' 	=> 'invoice', 		
+			'invoice_id' 	=> 'invoice', 		
 			'tp_id' 		=> 'id', 		
 			'full_name' 	=> 'billing_details_name',			//
 			'address' 		=> 'billing_details_address_line1',	//	
