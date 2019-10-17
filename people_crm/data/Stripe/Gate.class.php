@@ -38,41 +38,20 @@ if( !class_exists( 'Gate' ) ){
 
 	// PROPERTIES
 		
-		//
-		public 
-			$patron = 0,
-			$service = '',
-			$token = '',
-			$action = 'invoice',  //default is 'invoice'. 
-			$data = [],
-			$status = 'new'; //default is new
- 
+		//public 
+
 		private 
 			$gate_id = 0,
+			$timestamp = NULL,
 			$reference_id = '',
-			$obj;
+			$obj,
+			$action = 'invoice',  //default is 'invoice'. 
+			$status = 'new',//default is new
+			$patron = 0,
+			$service = '',
+			$token = '';
 			
-		//Maybe we also need a date as a property? 
-		
-		
-		private $data_map;						//(obj) Data map class 
-		
-		//Sets of action data needed to perform the requested action. 
-		/*
-		
-			For example: if this is an invoice 
-		
-		
-		
-		*/
-		
-		/* private $default_data_map = [
-		
-		];			// 'nn_value' => '3rd_party_value'
-		 */
-		
-
-		
+	
 		
 		
 	// METHODS	
@@ -91,16 +70,19 @@ if( !class_exists( 'Gate' ) ){
 	/*
 		Name: __Destruct
 		Description: 
+			- Save Gate Object to Database on Destruction.
+		
 	*/	
 		
 		public function __destruct(){
 			
+			$this->save();
 			
 			
 		}	
 
 	/*
-		Name: Init
+		Name: Init (deprecated?)
 		Description: 
 			$data is the incoming data
 			$source is a string
@@ -109,8 +91,6 @@ if( !class_exists( 'Gate' ) ){
 	*/	
 		
 		private function init( ){
-			
-			                                                             
 			
 			//check for matching reference_ids, returns an array of gate_ids that match 
 			if( !empty( $stored ) )
@@ -128,63 +108,73 @@ if( !class_exists( 'Gate' ) ){
 		
 		
 	/*
-		Name: prepare
-		Description: 
+		Name: setup
+		Description: This sets up the gate incoming data.  
 	*/	
 		
-		public function prepare( $data ){
+		public function setup( $data ){
 			
-			$this->obj = $data
-			$this->reference_id = $data[ 'data' ][ 'reference_id' ];
+			if( empty( $this->obj ) )
+				$this->obj = $data;
 			
-			$this->service = $data[ 'service' ];
-			$this->token = $data[ 'token' ];
+			if( empty( $this->obj ) )
+				$this->reference_id = $data[ 'data' ][ 'reference_id' ];
 			
+			$props = [ 'patron', 'service', 'token' ]
 			
+			foreach( $props as $prop ){
+				if( !empty( $data[ $prop ] ) )
+					$this->$prop = $data[ $prop ];
+			}
+			
+		}		
+		
+		
+	/*
+		Name: prepare
+		Description: This prepares data to be inserted into the database. 
+			array of [field=>values] to prepare (optional) - if not set, prepare all. 
+			
+			Returns an array of data for insertion. 
+
+	*/	
+		
+		public function prepare( $array = [] ){
+			
+			if( empty( $array ) ){
+				$array = [
+					'timestamp' => $this->timestamp,
+					'reference_id' => $this->reference_id,
+					'action' => $this->action,
+					'data' => $this->obj,
+					'sent' => $this->sent,
+				];
+			}		
+				
+			return $array;
 		}		
 
 		
 	/*
-		Name: store
+		Name: add
 		Description: Sends gate info to database. 
 	*/	
 		
-		public function store(){
+		public function add(){
 			
 			global $wpdb;
 			
 			$checks = [ 'timestamp', 'reference_id', 'action', 'obj', 'sent', 'table' ];
-			
-			/*
-			
-				'id' => 'mediumint(15) NOT NULL AUTO_INCREMENT',
-				'timestamp' => "datetime DEFAULT '0000-00-00 00:00:00' NOT NULL",
-				'reference_id' => 'varchar(40) NOT NULL',
-				'action' => 'varchar(10) NOT NULL',
-				'data' => 'mediumtext NOT NULL',
-				'sent' => 'varchar(15) NOT NULL',
-			
-			*/
-
+		
 			$table = $wpdb->prefix."gate";
 			
 			//Timestamp: where is this coming from? Time it was insert: NOW. 
-			$timestamp = date( 'Y-m-d H:i:s' );
-			
-			//Reference ID: 
-			$reference_id = $this->reference_id;
-			
-			//action: 
-			$action = $this->action;
-			
-			//data obj
-			$obj = json_encode( $this->obj );
-			
-			$sent = 'new'; //'new', 'hold', 'sent', or (ID of gate object that this belongs to)
-			
-			//$query = "SELECT * FROM {$table} WHERE event_id = {$id}";
-			//if event has already been sent and stored: 
-			//if( $wpdb->get_results( $query, OBJECT ) ) return;
+			$this->timestamp = date( 'Y-m-d H:i:s' );
+		
+			$data = $this->prepare();
+		
+			//IMPORTANT: but needs to happen after this->prepare(), data obj 
+			$data[ 'obj' ] = json_encode( $data[  'obj' ] );
 			
 			//Check that all the above values are not empty. 
 			
@@ -193,18 +183,34 @@ if( !class_exists( 'Gate' ) ){
 					 return new WP_Error( 'empty', __( "Attempting to send empty values to the database. Sorry!", PC_TD ) );
 			}
 			
-			$data = [
-				'timestamp' => $timestamp,
-				'reference_id' => $reference_id,
-				'action' => $action,
-				'data' => $obj,
-				'sent' => $sent,
-			];
-			
 			return $wpdb->insert( $table, $data );
 			
 		}		
 		
+		
+	/*
+		Name: save 
+		Description: Take the gate object in its current state and saves it to the database. 
+			Params: $args = the data to be updated. 
+			
+	*/	
+		
+		public function save( $args ){
+			global $wpdb;
+			
+			$table = $wpdb->prefix."gate";
+			
+			if( empty( $this->gate_id ) )
+				return new WP_Error( 'empty', __( "Attempting to update a gate without an id. Sorry!", PC_TD ) );
+			
+			$where = [
+				'id' => $this->gate_id, 
+			];
+			
+			return $wpdb->update( $table, $args, $where );
+
+		}		
+	
 	
 	/*
 		Name: create
@@ -214,43 +220,14 @@ if( !class_exists( 'Gate' ) ){
 		public function create( $data ){
 			
 			//Prepare incoming data,  assign properties. 
-			$this->prepare( $data );
-			
+			$this->setup( $data );
 			
 			//store in database. 
-			$stored = $this->store();
-			
+			$stored = $this->add();
 			
 		}		
 
-		
-		
-	/*
-		Name: get_reference_id
-		Description: 
-	*/	
-		
-		public function get_reference_id(){
-			
-			return $this->reference_id;
-			
-		}
 
-
-		
-		
-	/*
-		Name: put_on_hold
-		Description: This changes the status of the gate object in the database to "hold". 
-	*/	
-		
-		public function put_on_hold(){
-			
-			
-		}
-
-
-		
 		
 	/*
 		Name: get_gate_id
@@ -264,6 +241,38 @@ if( !class_exists( 'Gate' ) ){
 		
 		
 	/*
+		Name: get_reference_id
+		Description: 
+	*/	
+		
+		public function get_reference_id(){
+			
+			return $this->reference_id;
+			
+		}	
+		
+		
+	/*
+		Name: set_status
+		Description: This changes the status of the gate object in the database to inputted value. 
+	*/	
+		
+		public function set_status( $status ){
+			
+			$args = $this->prepare( [
+				'sent' => $status;
+			] );
+			
+			$saved = $this->save( $args );
+			
+			return $saved;
+		}
+
+
+		
+
+		
+	/*
 		Name: load_by_id
 		Description: loads gate object by ID. 
 	*/	
@@ -271,36 +280,27 @@ if( !class_exists( 'Gate' ) ){
 		public function load_by_id( $id ){
 			global $wpdb;
 			
-			$table = $wpdb->prefix."gate";
-			
-			
-			$query = "SELECT * FROM {$table} WHERE id = {$id} LIMIT 1;";
-			
-			$prepared = $wpdb->prepare( $query );
-			
-			$results = $wpdb->get_results( $prepared );
-			
-		}
-		
-		
-	/*
-		Name: save (same as "store" method?)
-		Description: Take the gate object in its current state and saves it to the database. 
-	*/	
-		
-		public function save(){
-			global $wpdb;
-			
-			$query = array(
-				'' => '',
-				'' => '',
-				'' => '',
-				'' => '',
+			$results = $wpdb->get_results( 
+				"SELECT * FROM {$wpdb->prefix}gate WHERE id = {$id} LIMIT 1;" 
 			);
 			
-			$wpdb->update( $query );
+			$gate = $results[0];
 
+			$this->gate_id = $gate[ 'id' ];
+			unset( $gate[ 'id' ] );
+			
+			//Set Data
+			$this->obj = json_decode( $gate[ 'data' ] );
+			unset( $gate[ 'data' ] );
+			
+			//all remaining data coming from DB should have a corresponding property. 
+			foreach( $gate as $key => $val )
+				$this->$key = $val
+			
+			//Finish setting up properties found in the data. 
+			$this->setup( $this->obj );
 		}
+
 		
 	/*
 		Name: send

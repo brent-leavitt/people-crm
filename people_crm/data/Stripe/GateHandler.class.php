@@ -55,7 +55,7 @@ if( !class_exists( 'GateHandler' ) ){
 
 	/*
 		Name: __Construct
-		Description: 
+		Description: Incoming data has already been formatted according to the systems needs. Only thing lackin will be completeness of data. May be empty values. 
 	*/	
 		
 		public function __construct( $data ){
@@ -90,12 +90,13 @@ if( !class_exists( 'GateHandler' ) ){
 			//Create Gate and then send back it's reference_ID. 
 			$primary = new Gate();
 			$primary->create( $data );
+			
 			$this->reference_id = $primary->get_reference_id();
 			
 			//Search for gates with similar reference_IDs. Returns a boolean. 
 			if( ! $this->search_by_reference_id() ){
 				if( ! $primary->is_ready() )
-					$primary->put_on_hold();
+					$primary->set_status( 'hold' );
 			} 
 				
 			
@@ -209,7 +210,7 @@ if( !class_exists( 'GateHandler' ) ){
 			}
 			
 			//if not sent, mark gate as on hold, and save it. 
-			$gate->put_on_hold();
+			$gate->set_status( 'hold' );
 			$gate->save();
 			
 		}
