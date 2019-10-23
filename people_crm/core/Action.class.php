@@ -1,7 +1,7 @@
 <?php 
 
 /* 
-nn_network\core\Action
+people_crm\core\Action
 
 Actions Automation - Code Plan for NBCS
 Last Updated 12 Jul 2019

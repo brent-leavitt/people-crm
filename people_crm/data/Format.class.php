@@ -311,6 +311,17 @@ if( !class_exists( 'Format' ) ){
 
 		
 	/*
+		Name: get_output_format
+		Description: 
+	*/	
+		
+		public function get_output_format(){
+			
+			return $this->output_format;
+		}
+		
+		
+	/*
 		Name: 
 		Description: 
 	*/	

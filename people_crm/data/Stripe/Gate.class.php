@@ -4,10 +4,18 @@
 people_crm\data\stripe\Gate
 
 Gate Class for Stripe in the People CRM Plugin
-Last Updated 8 Oct 2019
+Last Updated 23 Oct 2019
 -------------
 
-Description: This takes a batch of incoming data (a webhook) from the Stripe third party service and compiles into one group of data for use in the system's backend actions. 
+Description: This is the gate class which creates objects for the gate database entries. 
+
+THere are two ways to initate a gate: create() or load_by_id(). 
+	
+	-Create() - takes a batch of incoming data (a webhook) from the Stripe third party service and compiles into one group of data for use in the system's backend actions. 
+	
+	-Load_by_id() - takes and existing gate entry, referenced by its gate_id. 
+	
+	
 
 //Steps for building a gate object. 
 
@@ -114,10 +122,12 @@ if( !class_exists( 'Gate' ) ){
 		
 		public function setup( $data ){
 			
+			//
 			if( empty( $this->obj ) )
 				$this->obj = $data;
 			
-			if( empty( $this->obj ) )
+			//Not sure why I'm calling this empty check . 
+			if( empty( $this->reference_id ) )
 				$this->reference_id = $data[ 'data' ][ 'reference_id' ];
 			
 			$props = [ 'patron', 'service', 'token' ]
@@ -164,7 +174,7 @@ if( !class_exists( 'Gate' ) ){
 			
 			global $wpdb;
 			
-			$checks = [ 'timestamp', 'reference_id', 'action', 'obj', 'sent', 'table' ];
+			$checks = [ 'timestamp', 'reference_id', 'action', 'data', 'sent', 'table' ];
 		
 			$table = $wpdb->prefix."gate";
 			
@@ -174,7 +184,7 @@ if( !class_exists( 'Gate' ) ){
 			$data = $this->prepare();
 		
 			//IMPORTANT: but needs to happen after this->prepare(), data obj 
-			$data[ 'obj' ] = json_encode( $data[  'obj' ] );
+			$data[ 'data' ] = json_encode( $data[  'data' ] );
 			
 			//Check that all the above values are not empty. 
 			
@@ -281,7 +291,7 @@ if( !class_exists( 'Gate' ) ){
 			global $wpdb;
 			
 			$results = $wpdb->get_results( 
-				"SELECT * FROM {$wpdb->prefix}gate WHERE id = {$id} LIMIT 1;" 
+				"SELECT * FROM {$wpdb->prefix}gate WHERE id = '{$id}' LIMIT 1;" 
 			);
 			
 			$gate = $results[0];
@@ -301,28 +311,7 @@ if( !class_exists( 'Gate' ) ){
 			$this->setup( $this->obj );
 		}
 
-		
-	/*
-		Name: send
-		Description: Send this gate object to the back end for processing. 
-	*/	
-		
-		public function send(){
-			
-			
-		}
-		
-	/*
-		Name: is_ready
-		Description: This checks to see if the gate object has enough data to be correctly processed on the back end. 
-	*/	
-		
-		public function is_ready(){
-			
-			
 
-		}
-		
 	/*
 		Name: 
 		Description: 

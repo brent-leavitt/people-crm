@@ -34,7 +34,11 @@ Description: This takes a batch of incoming data (a webhook) from the Stripe thi
 		
 */
 	
+
 namespace people_crm\data\Stripe\;
+
+use \people_crm\core\Action as Action;
+use \people_crm\data\Format as Format;
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
@@ -93,9 +97,9 @@ if( !class_exists( 'GateHandler' ) ){
 			
 			$this->reference_id = $primary->get_reference_id();
 			
-			//Search for gates with similar reference_IDs. Returns a boolean. 
+			//Search for gates with similar reference_IDs. Returns a boolean which answer: are there other gate ids? 
 			if( ! $this->search_by_reference_id() ){
-				if( ! $primary->is_ready() )
+				if( ! $this->is_ready( $primary ) )
 					$primary->set_status( 'hold' );
 			} 
 				
@@ -111,20 +115,20 @@ if( !class_exists( 'GateHandler' ) ){
 				$this->merge_gates( $second, $primary );
 				
 				//Check if gate is ready to send
-				if( $second->is_ready() )
-					$second->send();
+				if( $this->is_ready( $second ) )
+					$this->send( $second );
 				else
 					$second->save();
 				
 			} else {
 				//This is the lowest id. 
 				
-				if( ! $primary->is_ready() ){
+				if( ! $this->is_ready( $primary ) ){
 					//attempt to merge with other gates. 
 					$this->merge_all_gates( $primary );
 					
 				}else{
-					$primary->send();
+					$this->send( $primary );
 					
 				}
 				
@@ -146,12 +150,19 @@ if( !class_exists( 'GateHandler' ) ){
 			
 			$id = $this->reference_id;
 			
-			//Do database stuff. 
-		
+			//Do database stuff. NEEDS TO BE TESTED. 
+			
+			$results = $wpdb->get_results( 
+				"SELECT id FROM {$wpdb->prefix}gate WHERE reference_id = '{$id}';" 
+			);
+			
+			$ids = [];
+			
+			foreach( $results as $result )
+				$ids[] = $result->id;
+				
 			//if not empty send results (array of IDs) to gate_ids.
-			$this->gate_ids = ( $results )?? [];
-			
-			
+			$this->gate_ids = ( $ids )?? [];
 		
 			return !empty( $this->gate_ids ); //boolean;
 			
@@ -214,8 +225,54 @@ if( !class_exists( 'GateHandler' ) ){
 			$gate->save();
 			
 		}
-
+	
+	
+	/*
+		Name: is_ready
+		Description: This checks to see if the submitted gate object has enough data to be correctly processed on the back end. 
+	*/	
 		
+		public function is_ready( $gate ){
+			
+			
+			//Check if gate has patron, service, and token set. 
+			$checks = [ 'patron', 'service', 'token' ]
+			
+			foreach( $checks as $check ){
+				if( empty( $gate->$check ) ) 
+					return false;
+			}
+			
+			$format = Format::get_output_format();
+			
+			//Compare formats...
+//STOPPED HERE. PRAY ABOUT HOW TO RESOLVE THIS TOMORROW.			
+			
+			//Two arrays to check: the data array, and the nested payee array. 
+			
+			//assess if each value is essential.
+				//How? 
+			
+			//Check for essential elements that they are not empty. 
+			
+			
+			return true; //(boolean)
+			
+		}		
+	
+	
+	/*
+		Name: send
+		Description: Sends the submitted gate object to the back end for processing. 
+	*/	
+		
+		public function send( $gate ){
+			
+			$action = new Action( $gate->obj );
+			
+		}
+	
+	
 	/*
 		Name: 
 		Description: 
