@@ -28,17 +28,16 @@ Description: This takes a batch of incoming data (a webhook) from the Stripe thi
 
 //Merge two gate objects. 
 
-//Mark merged object with primary objects id in the "sent" catagery. 
+//Mark merged object with primary objects id in the "status" field. 
 //Check if primary object now has enough data to send.
 
 		
 */
 	
 
-namespace people_crm\data\Stripe\;
+namespace people_crm\data\Stripe;
 
 use \people_crm\core\Action as Action;
-use \people_crm\data\Format as Format;
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
@@ -95,6 +94,8 @@ if( !class_exists( 'GateHandler' ) ){
 			$primary = new Gate();
 			$primary->create( $data );
 			
+			//dump( __CLASS__, __METHOD__, $primary );
+			
 			$this->reference_id = $primary->get_reference_id();
 			
 			//Search for gates with similar reference_IDs. Returns a boolean which answer: are there other gate ids? 
@@ -137,12 +138,10 @@ if( !class_exists( 'GateHandler' ) ){
 				
 		}
 
-	
-
 		
 	/*
 		Name: search_by_reference_id
-		Description: 
+		Description: This looks for all transactions that have an identical reference_id and then adds them to the "gate_ids" property, and returns true if there are any other gate_ids
 	*/	
 		
 		public function search_by_reference_id(){
@@ -166,10 +165,7 @@ if( !class_exists( 'GateHandler' ) ){
 		
 			return !empty( $this->gate_ids ); //boolean;
 			
-			
 		}	
-
-
 
 		
 	/*
@@ -179,7 +175,10 @@ if( !class_exists( 'GateHandler' ) ){
 		
 		public function is_lowest_id( $in ){
 			
-			$lowest = min( $this->gate_ids );
+			if( !empty( $this->gate_ids ) )
+				$lowest = min( $this->gate_ids );
+			else
+				return true;//assume lowest if nothing to compare. 
 			
 			return ( $in <= $lowest );//boolean
 		}
@@ -191,11 +190,32 @@ if( !class_exists( 'GateHandler' ) ){
 	*/	
 		
 		public function merge_gates( &$low, &$high ){
+		
+			//$h_arr =  $high->get_obj();
 			
-			$low->data = array_merge( $low->data, $high->data );
+			
+			$new_obj =  array_merge( $low->get_obj(), $high->get_obj() );
+			$low->set_obj( $new_obj );			
+			
+			//Merge Top Level 'obj' data from the two submitted gate objects 
+			/* $low_obj = $low->get_obj();
+			
+			foreach($low_obj  as $key => $val ){
+				if( empty( $val ) ){
+					$new_val =  $high->get_obj( $key );
+					$low->set_obj( $new_val );
+				}
+			}
+			
+			//Merge Payee information
+			foreach( $low_obj->data as $ )
+			*/
+			
+			//$low->set_obj( array_merge( $low->get_obj(), $h_arr ) );
 			
 			//IMPORTANT: Assign the low gate's id to the high gate status, indicating that high gate is now contributed its data to the low gate id. 
-			$high->status = $low->id;
+			if( !empty(  $low_id = $low->get_id() ) )
+				$high->set_status( $low_id );
 			
 			//Save higher gate, because it will not be altered furtehr. 
 			$high->save(); 
@@ -216,8 +236,10 @@ if( !class_exists( 'GateHandler' ) ){
 				
 				$this->merge_gates( $gate, $high );
 				
-				if( $gate->is_ready() )
-					$gate->send();	
+				if( $this->is_ready( $gate ) ){
+					$this->send( $gate );	
+					return;
+				}
 			}
 			
 			//if not sent, mark gate as on hold, and save it. 
@@ -234,27 +256,56 @@ if( !class_exists( 'GateHandler' ) ){
 		
 		public function is_ready( $gate ){
 			
+			dump( __LINE__, __METHOD__, $gate );
 			
 			//Check if gate has patron, service, and token set. 
-			$checks = [ 'patron', 'service', 'token' ]
+			$checks = [ 'patron', 'service', 'token' ];
 			
 			foreach( $checks as $check ){
 				if( empty( $gate->$check ) ) 
 					return false;
 			}
-			
-			$format = Format::get_output_format();
-			
-			//Compare formats...
-//STOPPED HERE. PRAY ABOUT HOW TO RESOLVE THIS TOMORROW.			
+				
 			
 			//Two arrays to check: the data array, and the nested payee array. 
+			$data_checks = [
+				'create_date',
+				'currency',
+				'gross_amount',
+				'net_amount',
+				'payee',
+				'reference_id',
+				'reference_type',
+				'tp_id',
+				'tp_name',
+				'tp_type',
+				'tp_user_id',
+				'trans_status',
+				'trans_descrip',
+				'trans_fee',
+			];
 			
-			//assess if each value is essential.
-				//How? 
+			$data = $gate->obj['data'];
 			
-			//Check for essential elements that they are not empty. 
+			if( ! $this->checker( $data, $data_checks ) )
+				return false; 
 			
+			$payee_checks = [
+				'full_name',
+				'first_name',
+				'last_name',
+				'address',
+				'city',
+				'state',
+				'zip',
+				'country',
+				'email',
+				'phone',
+				'cc_type',
+			];
+			
+			if( ! $this->checker( $payee, $payee_checks ) )
+				return false;
 			
 			return true; //(boolean)
 			
@@ -268,10 +319,29 @@ if( !class_exists( 'GateHandler' ) ){
 		
 		public function send( $gate ){
 			
+			$gate->save();
 			$action = new Action( $gate->obj );
 			
 		}
 	
+	
+	/*
+		Name: checker
+		Description: This checks that array submitted has the checks and that those checks are not empty. Returns boolean. 
+	*/	
+		
+		public function checker( $arr, $checks ){
+			
+			foreach( $checks as $check ){
+				if( empty( $arr[ $check ] ) ){
+					dump( __LINE__, __METHOD__, $check. ' check is empty in this array: ' .$arr );	
+					return false;
+				}
+			}
+			
+			return true;
+		}	
+		
 	
 	/*
 		Name: 

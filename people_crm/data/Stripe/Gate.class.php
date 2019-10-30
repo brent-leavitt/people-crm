@@ -37,7 +37,7 @@ THere are two ways to initate a gate: create() or load_by_id().
 		
 */
 	
-namespace people_crm\data\Stripe\;
+namespace people_crm\data\Stripe;
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
@@ -92,37 +92,29 @@ if( !class_exists( 'Gate' ) ){
 	/*
 		Name: Init (deprecated?)
 		Description: 
-			$data is the incoming data
-			$source is a string
-			$action is a string, and is determined in the webhook. 
+			
 			
 	*/	
 		
 		private function init( ){
 			
-			//check for matching reference_ids, returns an array of gate_ids that match 
-			if( !empty( $stored ) )
-				$gate_ids = $this->find_matching_reference_ids();
-			
-			//
-			if( !empty( $gate_ids ) )
-				$is_lowest = $this->is_lowest_gate_id( $gate_ids );
-			//End result is: mapped data ready to be taken for use. 
-			//$this->get_formatted_data();
-			
-			//dump( __LINE__, __METHOD__, $this->out );
+
 		}
 
 		
-		
+	//STOPPED HERE, got some bugs. 	
 	/*
 		Name: setup
-		Description: This sets up the gate incoming data.  
+		Description: This sets up the gate incoming data. 
+			Param: (array) $data 
 	*/	
 		
 		public function setup( $data ){
 			
-			//
+			//Force to Array. 
+			if( is_object( $data ) )
+				$data = json_decode( json_encode( $data ), true );
+			
 			if( empty( $this->obj ) )
 				$this->obj = $data;
 			
@@ -130,7 +122,7 @@ if( !class_exists( 'Gate' ) ){
 			if( empty( $this->reference_id ) )
 				$this->reference_id = $data[ 'data' ][ 'reference_id' ];
 			
-			$props = [ 'patron', 'service', 'token' ]
+			$props = [ 'patron', 'service', 'token' ];
 			
 			foreach( $props as $prop ){
 				if( !empty( $data[ $prop ] ) )
@@ -157,9 +149,11 @@ if( !class_exists( 'Gate' ) ){
 					'reference_id' => $this->reference_id,
 					'action' => $this->action,
 					'data' => $this->obj,
-					'sent' => $this->sent,
+					'status' => $this->status,
 				];
 			}		
+			if( isset( $array[ 'data' ] ) )
+				$array[ 'data' ] = json_encode( $array[ 'data' ] );
 				
 			return $array;
 		}		
@@ -174,26 +168,30 @@ if( !class_exists( 'Gate' ) ){
 			
 			global $wpdb;
 			
-			$checks = [ 'timestamp', 'reference_id', 'action', 'data', 'sent', 'table' ];
+			$checks = [ 'timestamp', 'reference_id', 'action', 'data', 'status' ];
 		
 			$table = $wpdb->prefix."gate";
 			
 			//Timestamp: where is this coming from? Time it was insert: NOW. 
 			$this->timestamp = date( 'Y-m-d H:i:s' );
+			
+			//Dev purposes only. 
+			//if( NN_DEV )
+				//$this->reference_id = 'in_0123456789a';
 		
 			$data = $this->prepare();
-		
-			//IMPORTANT: but needs to happen after this->prepare(), data obj 
-			$data[ 'data' ] = json_encode( $data[  'data' ] );
 			
 			//Check that all the above values are not empty. 
 			
 			foreach( $checks as $check ){
-				if( empty( $$check ) )
-					 return new WP_Error( 'empty', __( "Attempting to send empty values to the database. Sorry!", PC_TD ) );
+				if( empty( $data[ $check ] ) ){
+					 return new \WP_Error( 'empty', __( "Attempting to send empty -{$check}- value to the database. Sorry!", PC_TD ) );
+				}
 			}
 			
-			return $wpdb->insert( $table, $data );
+			$wpdb->insert( $table, $data );
+			
+			return $wpdb->insert_id;
 			
 		}		
 		
@@ -205,13 +203,16 @@ if( !class_exists( 'Gate' ) ){
 			
 	*/	
 		
-		public function save( $args ){
+		public function save( $args = [] ){
 			global $wpdb;
+			
+			if( empty( $args ) )
+				$args = $this->prepare();
 			
 			$table = $wpdb->prefix."gate";
 			
 			if( empty( $this->gate_id ) )
-				return new WP_Error( 'empty', __( "Attempting to update a gate without an id. Sorry!", PC_TD ) );
+				return new \WP_Error( 'no_id', __( "Attempting to update a gate without an id. Sorry!", PC_TD ) );
 			
 			$where = [
 				'id' => $this->gate_id, 
@@ -229,12 +230,14 @@ if( !class_exists( 'Gate' ) ){
 		
 		public function create( $data ){
 			
+			
 			//Prepare incoming data,  assign properties. 
 			$this->setup( $data );
 			
 			//store in database. 
-			$stored = $this->add();
+			$this->gate_id = $this->add();
 			
+			//dump( __LINE__, __METHOD__, $stored );
 		}		
 
 
@@ -269,8 +272,10 @@ if( !class_exists( 'Gate' ) ){
 		
 		public function set_status( $status ){
 			
+			$this->status = $status;
+			
 			$args = $this->prepare( [
-				'sent' => $status;
+				'status' => $status
 			] );
 			
 			$saved = $this->save( $args );
@@ -291,24 +296,66 @@ if( !class_exists( 'Gate' ) ){
 			global $wpdb;
 			
 			$results = $wpdb->get_results( 
-				"SELECT * FROM {$wpdb->prefix}gate WHERE id = '{$id}' LIMIT 1;" 
+				"SELECT * FROM {$wpdb->prefix}gate WHERE id = '{$id}' LIMIT 1;" ,
+				"ARRAY_A"
 			);
 			
 			$gate = $results[0];
-
+			//dump( __LINE__, __METHOD__, $gate );
+			
 			$this->gate_id = $gate[ 'id' ];
 			unset( $gate[ 'id' ] );
 			
 			//Set Data
-			$this->obj = json_decode( $gate[ 'data' ] );
+			$this->obj = json_decode( $gate[ 'data' ] , true );
 			unset( $gate[ 'data' ] );
+			
+			//dump( __LINE__, __METHOD__, $gate );
 			
 			//all remaining data coming from DB should have a corresponding property. 
 			foreach( $gate as $key => $val )
-				$this->$key = $val
+				$this->$key = $val;
+			
+			
 			
 			//Finish setting up properties found in the data. 
 			$this->setup( $this->obj );
+		}
+
+
+	/*
+		Name: set_obj
+		Description: 
+	*/	
+		
+		public function set_obj( $obj ){
+			
+			if( !empty( $obj ) )
+				$this->obj = (array) $obj;
+			
+		}
+
+	/*
+		Name: get_obj
+		Description: Returns the 'obj' property forced as an array. 
+	*/	
+		
+		public function get_obj( ){
+			
+			return (array) $this->obj;
+			
+		}
+
+
+	/*
+		Name: get_id
+		Description: Retrieve gate ID. 
+	*/	
+		
+		public function get_id( ){
+			
+			return $this->gate_id;
+			
 		}
 
 

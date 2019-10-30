@@ -43,7 +43,7 @@ if( !class_exists( 'Database' ) ){
 							'reference_id' => 'varchar(40) NOT NULL',
 							'action' => 'varchar(10) NOT NULL',
 							'data' => 'mediumtext NOT NULL',
-							'sent' => 'varchar(15) NOT NULL',
+							'status' => 'varchar(15) NOT NULL',
 						],
 						'primary_key' => 'id'
 					]

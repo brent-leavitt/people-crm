@@ -15,7 +15,6 @@ Last Updated 19 Jul 2019
 namespace people_crm\data\Stripe;
 
 use \people_crm\data\Format as Format;
-
 use \people_crm\core\Action as Action;
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
@@ -97,21 +96,10 @@ if( !class_exists( 'WebHook' ) ){
 			if( !in_array( $eventType, $this->actionable_responses ) || empty( $event->data ) )
 				return false;
 				
-			//If is relevant data, store in database, then send to gate object. 	
-				
-			$sent = $this->send_to_db( $event );
-			
-			if( $sent !== false )
-			//Set primary action
-			//$this->action = $this->actionable_responses[ $eventType ]; //
+			$format = new Format( $event->data[ "object" ] , 'Stripe', 'invoice' ); // contains the data from a Stripe event.
 
-			
-			$format = new Format( $event->data[ "object" ] , 'Stripe' ); // contains the data from a Stripe event.
-		
 			//Send to Gate Handler
-			$handler = new GateHandler( $format->out );
-			
-			//DISCARD: $action = new Action( $format->out );
+			$handler = new GateHandler( $format->get_out() );	
 			
 		}
 				
@@ -147,10 +135,11 @@ if( !class_exists( 'WebHook' ) ){
 		public function send_to_db( $event ){
 			global $wpdb;
 			
+			
 			$id = $event->id;
 			$timestamp = date( 'Y-m-d H:i:s', $event->created );
 			$table = $wpdb->prefix."webhooks";
-			$query = "SELECT * FROM {$table} WHERE event_id = {$id}";
+			$query = "SELECT * FROM {$table} WHERE event_id = '{$id}'";
 			
 			//if event has already been sent and stored: 
 			if( $wpdb->get_results( $query, OBJECT ) ) return;
@@ -161,7 +150,12 @@ if( !class_exists( 'WebHook' ) ){
 				'data' => json_encode( $event ),
 			];
 			
-			return $wpdb->insert( $table, $data );
+			$wpdb->insert( $table, $data );
+			
+			dump( __CLASS__, __METHOD__, $wpdb );
+			
+			//NO INSERT ID being sent, because the database doesn't have an ID row. 
+			return $wpdb->insert_id;
 			
 		}
 		

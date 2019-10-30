@@ -113,9 +113,9 @@ if( !class_exists( 'Format' ) ){
 		Description: 
 	*/	
 		
-		public function __construct( $data, $source ){
+		public function __construct( $data, $source, $action ){
 			
-			$this->init( $data, $source );
+			$this->init( $data, $source, $action );
 			
 		}	
 		
@@ -140,10 +140,11 @@ if( !class_exists( 'Format' ) ){
 			
 	*/	
 		
-		private function init( $data, $source ){
+		private function init( $data, $source, $action ){
 			
 			$this->in 		= $data;		//Recieve the data to be formatted from external sources. 
 			$this->source 	= $source;		//Set the source of incoming data.
+			$this->action 	= $action;
 			
 			$this->out = $this->map_data();
 			
@@ -155,7 +156,7 @@ if( !class_exists( 'Format' ) ){
 			//End result is: mapped data ready to be taken for use. 
 			//$this->get_formatted_data();
 			
-			dump( __LINE__, __METHOD__, $this->out );
+			//dump( __LINE__, __METHOD__, $this->out );
 		}
 
 	
@@ -319,6 +320,18 @@ if( !class_exists( 'Format' ) ){
 			
 			return $this->output_format;
 		}
+		
+		
+	/*
+		Name:get_out 
+		Description: Returns the out property value. 
+	*/	
+		
+		public function get_out(  ){
+			
+			return $this->out;
+		}		
+		
 		
 		
 	/*

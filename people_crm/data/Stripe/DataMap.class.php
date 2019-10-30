@@ -51,7 +51,7 @@ if( !class_exists( 'DataMap' ) ){
 			'gross_amount' 	=> 'amount', 			//Transaction Gross Amount
 /* 			'trans_fee'		=> '',  	 		//Transaction Fee
 			'net_amount' 	=> '',		 		//Amount Collected After Fees */
-			'invoice_id' 	=> 'invoice', 		
+			'reference_id' 	=> 'invoice', 		
 			'tp_id' 		=> 'id', 		
 			'full_name' 	=> 'billing_details_name',			//
 			'address' 		=> 'billing_details_address_line1',	//	
@@ -93,7 +93,7 @@ if( !class_exists( 'DataMap' ) ){
 		
 		//https://stripe.com/docs/api/invoices
 		private $invoice_data_map = [ //'nn_value' => '3rd_party_value'
-			'invoice_id' => 'id', //
+			'reference_id' => 'id', //
 			'create_date' 	=> 'created',
 			'currency' 		=> 'currency',
 			'trans_status' 	=> 'status', // draft, open, paid, uncollectible, or void
@@ -121,7 +121,7 @@ if( !class_exists( 'DataMap' ) ){
 			'enrollment' => 'metadata_enrollment', //
 			'service' => 'metadata_service', //
 			'tp_user_id' => 'customer',
-			'invoice_id' => 'last_invoice', //
+			'reference_id' => 'last_invoice', //
 			
 		
 		];
