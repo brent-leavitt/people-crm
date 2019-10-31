@@ -48,9 +48,7 @@ if( !class_exists( 'GateHandler' ) ){
 		
 		//
 		private $gate_ids = [],
-			$reference_id = '',
-			$primary,
-			$second;
+			$reference_id = '';
 		
 		
 		
@@ -94,46 +92,54 @@ if( !class_exists( 'GateHandler' ) ){
 			$primary = new Gate();
 			$primary->create( $data );
 			
-			//dump( __CLASS__, __METHOD__, $primary );
-			
 			$this->reference_id = $primary->get_reference_id();
 			
-			//Search for gates with similar reference_IDs. Returns a boolean which answer: are there other gate ids? 
-			if( ! $this->search_by_reference_id() ){
-				if( ! $this->is_ready( $primary ) )
-					$primary->set_status( 'hold' );
-			} 
-				
+			//Loads all related IDs. 
+			$this->search_by_reference_id();
+			
 			
 			//Assess if this is the lowest ID.
 			//Is Primary ID the lowest ID? 
 			if( !$this->is_lowest_id( $primary->get_gate_id() ) ){
-				
+ 
 				$second = new Gate();
 				$second->load_by_id( min( $this->gate_ids ) );
 				
 				//Merge data together.
 				$this->merge_gates( $second, $primary );
 				
-				//Check if gate is ready to send
-				if( $this->is_ready( $second ) )
+				//See if you can send lowest. 
+				if( $this->is_ready( $second ) ){
+					dump( __LINE__, __METHOD__, "Second is ready! prepping to send." );
 					$this->send( $second );
-				else
-					$second->save();
-				
-			} else {
-				//This is the lowest id. 
-				
-				if( ! $this->is_ready( $primary ) ){
-					//attempt to merge with other gates. 
-					$this->merge_all_gates( $primary );
+					return;
 					
 				}else{
-					$this->send( $primary );
+					//If not, save primary and secondary. 
 					
+					dump(  __LINE__, __METHOD__, "SECOND is not ready! Setting status to hold." );
+					$second->set_status( "hold" );
+					return;
 				}
+			}
+			
+			
+				
+			if( ! $this->is_ready( $primary ) ){
+				
+				//attempt to merge with other gates. 
+				dump(  __LINE__, __METHOD__, "Primary is not ready! ...Saving." );
+				$primary->save();
+
+				//$this->merge_all_gates( $primary );
+				
+			}else{
+				
+				dump(  __LINE__, __METHOD__, "Primary is ready!" );
+				$this->send( $primary );
 				
 			}
+				
 			//Attempt send???
 				
 		}
@@ -175,7 +181,7 @@ if( !class_exists( 'GateHandler' ) ){
 		
 		public function is_lowest_id( $in ){
 			
-			if( !empty( $this->gate_ids ) )
+			if( !empty( $this->gate_ids ) ) //This should never be empty. 
 				$lowest = min( $this->gate_ids );
 			else
 				return true;//assume lowest if nothing to compare. 
@@ -190,64 +196,25 @@ if( !class_exists( 'GateHandler' ) ){
 	*/	
 		
 		public function merge_gates( &$low, &$high ){
-		
-			//$h_arr =  $high->get_obj();
 			
+			//check if low gate status is already sent. 
+			$low_status = $low->get_status();
 			
-			$new_obj =  array_merge( $low->get_obj(), $high->get_obj() );
-			$low->set_obj( $new_obj );			
+			if( $low_status !== 'sent' ){
+				
+				$low_obj = $low->get_obj();
+				$high_obj = $high->get_obj();
 			
-			//Merge Top Level 'obj' data from the two submitted gate objects 
-			/* $low_obj = $low->get_obj();
-			
-			foreach($low_obj  as $key => $val ){
-				if( empty( $val ) ){
-					$new_val =  $high->get_obj( $key );
-					$low->set_obj( $new_val );
-				}
+				$new_obj =  $this->merge_data( $low_obj, $high_obj );
+				$low->set_obj( $new_obj );		
+					
 			}
-			
-			//Merge Payee information
-			foreach( $low_obj->data as $ )
-			*/
-			
-			//$low->set_obj( array_merge( $low->get_obj(), $h_arr ) );
 			
 			//IMPORTANT: Assign the low gate's id to the high gate status, indicating that high gate is now contributed its data to the low gate id. 
 			if( !empty(  $low_id = $low->get_id() ) )
 				$high->set_status( $low_id );
 			
-			//Save higher gate, because it will not be altered furtehr. 
-			$high->save(); 
 		}
-
-		
-	/*
-		Name: merge_all_gates
-		Description: This takes the primary gate and calls all available gates to build out data. 
-	*/	
-		
-		public function merge_all_gates( &$gate ){
-			$available = $this->gate_ids;
-			
-			foreach( $available as $g_id ){
-				$high = new Gate();
-				$high->load_by_id( $g_id );
-				
-				$this->merge_gates( $gate, $high );
-				
-				if( $this->is_ready( $gate ) ){
-					$this->send( $gate );	
-					return;
-				}
-			}
-			
-			//if not sent, mark gate as on hold, and save it. 
-			$gate->set_status( 'hold' );
-			$gate->save();
-			
-		}
-	
 	
 	/*
 		Name: is_ready
@@ -256,14 +223,17 @@ if( !class_exists( 'GateHandler' ) ){
 		
 		public function is_ready( $gate ){
 			
-			dump( __LINE__, __METHOD__, $gate );
+			$obj = $gate->get_obj();
 			
 			//Check if gate has patron, service, and token set. 
 			$checks = [ 'patron', 'service', 'token' ];
 			
 			foreach( $checks as $check ){
-				if( empty( $gate->$check ) ) 
+				if( empty( $obj[ $check ] ) ) {
+					/* dump( __LINE__, __METHOD__, "failed at first check: $check " );
+					 */
 					return false;
+				}
 			}
 				
 			
@@ -272,40 +242,44 @@ if( !class_exists( 'GateHandler' ) ){
 				'create_date',
 				'currency',
 				'gross_amount',
-				'net_amount',
 				'payee',
 				'reference_id',
-				'reference_type',
+				//'reference_type',
 				'tp_id',
 				'tp_name',
-				'tp_type',
+				//'tp_type',
 				'tp_user_id',
 				'trans_status',
-				'trans_descrip',
-				'trans_fee',
+				//'trans_descrip',
 			];
 			
-			$data = $gate->obj['data'];
-			
-			if( ! $this->checker( $data, $data_checks ) )
+			if( ! $this->checker( $obj[ 'data' ], $data_checks ) ){
+/* 				dump( __LINE__, __METHOD__, "failed at 2nd check." );
+				dump( __LINE__, __METHOD__, $gate ); */
 				return false; 
+			}
 			
 			$payee_checks = [
 				'full_name',
-				'first_name',
-				'last_name',
+				//'first_name',
+				//'last_name',
 				'address',
 				'city',
 				'state',
 				'zip',
 				'country',
 				'email',
-				'phone',
+				//'phone',
 				'cc_type',
 			];
 			
-			if( ! $this->checker( $payee, $payee_checks ) )
+			$payee = $obj[ 'data' ][ 'payee' ]; //Payee array. 
+			
+			if( ! $this->checker( $payee, $payee_checks ) ){
+/* 				dump( __LINE__, __METHOD__, "failed at 3rd check." );
+				dump( __LINE__, __METHOD__, $gate ); */
 				return false;
+			}
 			
 			return true; //(boolean)
 			
@@ -317,10 +291,17 @@ if( !class_exists( 'GateHandler' ) ){
 		Description: Sends the submitted gate object to the back end for processing. 
 	*/	
 		
-		public function send( $gate ){
+		public function send( &$gate ){
 			
-			$gate->save();
-			$action = new Action( $gate->obj );
+			$status = $gate->get_status();
+			
+			if( $status !== 'sent' ){
+				
+				$gate->set_status( 'sent' );
+				$gate->save();
+				$action = new Action( $gate->get_obj() );
+				
+			}
 			
 		}
 	
@@ -334,7 +315,7 @@ if( !class_exists( 'GateHandler' ) ){
 			
 			foreach( $checks as $check ){
 				if( empty( $arr[ $check ] ) ){
-					dump( __LINE__, __METHOD__, $check. ' check is empty in this array: ' .$arr );	
+					dump( __LINE__, __METHOD__, $check );	
 					return false;
 				}
 			}
@@ -343,6 +324,28 @@ if( !class_exists( 'GateHandler' ) ){
 		}	
 		
 	
+	/*
+		Name: merge_data
+		Description: This merges data from two sets, ignoring already set and empty values. Method is recursive. 
+	*/	
+		
+		public function merge_data( $low, $high ){
+	
+			foreach( $low as $key => $val ){
+				if( !is_array( $val ) ){
+					if( empty( $val ) && !empty( $high[ $key ] ) )
+						$low[ $key ] = $high[ $key ];
+				}else{
+					$low[ $key ] = $this->merge_data( $low[ $key ], $high[ $key ] );
+				}
+				
+			}
+			
+			return $low;
+		}
+		
+		
+		
 	/*
 		Name: 
 		Description: 

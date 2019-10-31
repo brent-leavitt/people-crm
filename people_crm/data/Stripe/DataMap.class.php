@@ -121,7 +121,7 @@ if( !class_exists( 'DataMap' ) ){
 			'enrollment' => 'metadata_enrollment', //
 			'service' => 'metadata_service', //
 			'tp_user_id' => 'customer',
-			'reference_id' => 'last_invoice', //
+			'reference_id' => 'latest_invoice', //
 			
 		
 		];

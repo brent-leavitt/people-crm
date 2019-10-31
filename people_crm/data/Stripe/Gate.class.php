@@ -54,10 +54,10 @@ if( !class_exists( 'Gate' ) ){
 			$reference_id = '',
 			$obj,
 			$action = 'invoice',  //default is 'invoice'. 
-			$status = 'new',//default is new
-			$patron = 0,
+			$status = 'new';//default is new
+			/* $patron = 0,
 			$service = '',
-			$token = '';
+			$token = ''; */
 			
 	
 		
@@ -122,12 +122,13 @@ if( !class_exists( 'Gate' ) ){
 			if( empty( $this->reference_id ) )
 				$this->reference_id = $data[ 'data' ][ 'reference_id' ];
 			
-			$props = [ 'patron', 'service', 'token' ];
+			/* $props = [ 'patron', 'service', 'token' ];
 			
-			foreach( $props as $prop ){
-				if( !empty( $data[ $prop ] ) )
+			foreach( $props as $prop ){ 
+				if( !empty( $data[ $prop ] ) ){
 					$this->$prop = $data[ $prop ];
-			}
+				}
+			} */
 			
 		}		
 		
@@ -301,7 +302,6 @@ if( !class_exists( 'Gate' ) ){
 			);
 			
 			$gate = $results[0];
-			//dump( __LINE__, __METHOD__, $gate );
 			
 			$this->gate_id = $gate[ 'id' ];
 			unset( $gate[ 'id' ] );
@@ -358,6 +358,16 @@ if( !class_exists( 'Gate' ) ){
 			
 		}
 
+
+	/*
+		Name: get_status
+		Description: 
+	*/	
+		
+		public function get_status(){
+			
+			return $this->status;
+		}
 
 	/*
 		Name: 
