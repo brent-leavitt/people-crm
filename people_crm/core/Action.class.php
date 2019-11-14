@@ -275,6 +275,8 @@ if( !class_exists( 'Action' ) ){
 			$invoice_data = $data->get_invoice_data(); */
 			
 			$invoice = new Invoice( $this->data );
+			
+			dump( __LINE__, __METHOD__, $invoice );
 					
 			//Check that action is set?
 			if( !empty( $invoice->action ) )
@@ -451,7 +453,7 @@ if( !class_exists( 'Action' ) ){
 			//Send admin warning if fails to record: 
 			
 			if( is_wp_error( $record ) )
-				do_admin_warning( $msg );
+				$this->do_admin_warning( $msg );
 			
 		}
 		

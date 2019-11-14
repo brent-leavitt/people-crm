@@ -3,11 +3,11 @@ People CRM Plugin
 Last Updated on 14 Oct 2019
 ---------------------------
 
-The Actions Class represents a switchboard that decides on what to do with the incoming data, based on details/instructions sent to the action class. The series of actions available represents all available action the backend process of the system are able to execute with regards to transactions (paid and non-paid). Actions are organized in bottom to top set of features with the bottom action being the lowest common denominator, an action that is performed by all incoming transactions (a record is made). Actions are then organized in something of a reversed cascading fashion building on top of one another, with the top-most action being the one that is performed first. 
+The Actions Class represents a switchboard that decides on what to do with the incoming data, based on details/instructions sent to the action class. The series of actions available represents all available actions that the backend process of the system is able to execute with regards to transactions (both paid and non-paid). Actions are organized in bottom to top set of features with the bottom action being the lowest common denominator, an action that is performed by all incoming transactions (a record is made). Actions are then organized in something of a reversed cascading fashion building on top of one another, with the top-most action being the one that is performed first. 
 
-Actions taken in this series of steps do not "return and report", rather they are execution only steps, meaning that they perform a task and then move on to the next task until all task are complete. Integrity of incoming data therefore is extremely important by the time the data reaches this "sealed" loop. For example, registration of a new user doesn't allow for error handling. Any potential errors are already checked before entering the loop. 
+Actions taken in this series of steps do not "return and report", rather they are execution only steps, meaning that they perform a task and then move on to the next task until all task are complete. Integrity of incoming data therefore is extremely important by the time the data reaches this "sealed" loop. For example, registration of a new user doesn't allow for error handling. Any potential errors are already checked before entering the action loop. 
 
-Errors that are caught within the loop are reported to the record action which is processed the end of the loop. 
+Errors that are caught within the loop are reported to the record action which is processed at the end of the loop. 
 
 
 Below are some examples of top to bottom (left to right) sets of actions that are taken: 
@@ -51,3 +51,10 @@ Invoices:
 Patron Registrations: 
 	- This is called for the rare event in which no patron account is found for the incoming transaction. Because every transaction must be connected to a patron, a patron must be connected to the transaction. 
 	
+========
+
+Class Structures
+
+When a action is being taken, typically a new class has been instantiated and an object created for that class. 
+
+Because of fundamental similarities between certain key classes (namely: invoices and receipts) they share similar parent classes  ("Transaction" which extends "PostData"). 

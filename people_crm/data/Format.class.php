@@ -204,7 +204,8 @@ if( !class_exists( 'Format' ) ){
 			$arr[ 'data' ][ 'tp_name' ] = $this->source;
 			
 			//Set Source data
-			$arr[ 'data' ][ 'src_data' ] = $this->in;
+			//Disabled. Only needed data is sent. 
+			//$arr[ 'data' ][ 'src_data' ] = $this->in;
 			
 			
 			return $arr;

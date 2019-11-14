@@ -111,7 +111,8 @@ if( !class_exists( 'Transaction' ) ){
 			
 			
 			//Assign incoming data to the data property for access. 
-			$this->data = $data; 
+			//$this->data = $data; 
+			
 			//Asssign incoming data to respective and available properties. 
 			$this->set_data( $data );
 			

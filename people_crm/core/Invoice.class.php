@@ -24,10 +24,10 @@ if( !class_exists( 'Invoice' ) ){
 		public $post_type = NN_PREFIX.'invoice';
 		
 		public $Invoice_data_map = array(
-			'due_date' 		=> '', 
+			'due_date' 			=> '', 
 			'amount_due' 		=> '', 
-			'amount_remaining' 		=> '', 
-			'paid' 		=> '', 
+			'amount_remaining' 	=> '', 
+			'paid' 				=> '', 
 			'receipt_id' 		=> 'post_parent', 
 			'' 		=> '', 
 			'' 		=> '', 

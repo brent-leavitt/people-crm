@@ -31,7 +31,7 @@ if( !class_exists( 'PostData' ) ){
 			$ID = 0,
 			$patron = 0,
 			$post_type = '', //
-			$data = array(),
+			//$data = array(),
 			$data_map = array(
 				'patron' => 'post_author'
 			); //
@@ -93,7 +93,7 @@ if( !class_exists( 'PostData' ) ){
 		public function init( $data ){
 
 			//Storing source data into the class. Needed. For right now, yes. 
-			$this->data = $data; 
+			//$this->data = $data; 
 		
 			$this->set_data( $data );
 			
@@ -113,14 +113,26 @@ if( !class_exists( 'PostData' ) ){
 		
 		public function set_data( $data ){
 			
+			dump( __LINE__, __METHOD__, $data );
+			
+			$data = array_merge( $data, $data[ 'data' ] );
+			
+			foreach( $data[ 'payee' ] as  $pkey => $pval ){
+				$payee_key = 'payee_'.$pkey;
+				$data[ $payee_key ] = $pval;
+			}
+			
+			unset( $data[ 'data' ] );
+			unset( $data[ 'payee' ] );
+			
 			
 			foreach ( get_object_vars( $this ) as $key => $value ){
-				if( isset( $data[ $key ] ) && !empty( $data[ $key ] ) ){
+				if( isset( $new_data[ $key ] ) && !empty( $data[ $key ] ) ){
 					$this->$key = $data[ $key ];
 				}
 			}	
 			
-			//dump( __LINE__, __METHOD__, get_object_vars( $this ) );
+			//
 		}	
 		
 		
@@ -236,10 +248,13 @@ if( !class_exists( 'PostData' ) ){
 		
 		
 	/*
+	
 		Name: add_meta
 		Description: Adds Metadata to the main post_arr array. 
+		
+		NOTES: Where is this called? 
+		
 	*/	
-				
 		
 		public function add_meta(){
 			
@@ -273,7 +288,8 @@ if( !class_exists( 'PostData' ) ){
 			
 			$this->data_map =  array_merge( $this->data_map, $this->$t_data_map );
 			
-			//dump( __LINE__, __METHOD__, $this->data_map );
+			//Dispose of after merge. 
+			unset( $this->t_data_map );
 			
 		}		
 		
@@ -457,6 +473,8 @@ if( !class_exists( 'PostData' ) ){
 	/*
 		Name: prepare
 		Description: Prepare data for insertion into database. 
+		
+		NOTES: This isn't a postData method. It belongs in Transaction. 
 	*/	
 				
 		
@@ -488,19 +506,6 @@ if( !class_exists( 'PostData' ) ){
 			
 			
 		}	
-			
-	/*
-		Name: 
-		Description: 
-
-				
-		
-		public function __(){
-			
-			
-		}
-			
-	*/	
 		
 	}
 }

@@ -96,7 +96,7 @@ if( !class_exists( 'WebHook' ) ){
 			if( !in_array( $eventType, $this->actionable_responses ) || empty( $event->data ) )
 				return false;
 				
-			$format = new Format( $event->data[ "object" ] , 'Stripe', 'invoice' ); // contains the data from a Stripe event.
+			$format = new Format( $event->data[ "object" ] , 'Stripe', 'receipt' ); // contains the data from a Stripe event.
 
 			//Send to Gate Handler
 			$handler = new GateHandler( $format->get_out() );	
