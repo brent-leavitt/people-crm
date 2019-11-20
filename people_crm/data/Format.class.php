@@ -39,11 +39,11 @@ if( !class_exists( 'Format' ) ){
 			'service' =>  '', 					//
 			'token' => '', 						//
 			'data' => array(					//The data key may be replaced with the name of the Primary Action. 
-				'create_date' => '', 			//Create Date or issue Date
+				'trans_date' => '', 			//Create Date or issue Date
 				'currency' => '',				//Currency (only accepting USD)
 				'discount' => '',		 		//Discount on Subtotal
 				'due_date' => '', 				//Due Date
-				'gross_amount' => '', 			//Transaction Gross Amount
+				'amount' => '', 			//Transaction Gross Amount
 				'line_items' => array(
 					array(
 						'li_id' => '', 			//Item ID

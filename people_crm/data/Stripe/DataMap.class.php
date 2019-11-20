@@ -40,7 +40,7 @@ if( !class_exists( 'DataMap' ) ){
 		
 		//https://stripe.com/docs/api/charges/object
 		private $charge_data_map = [ //'nn_value' => '3rd_party_value'
-			'create_date' 	=> 'created',
+			'trans_date' 	=> 'created',
 			'trans_type' 	=> 'object',
 			'trans_status' 	=> 'status',
 			'trans_descrip' => 'description',
@@ -48,7 +48,7 @@ if( !class_exists( 'DataMap' ) ){
 /* 			'subtotal' 		=> '',		 		//Subtotal before taxes
 			'discount' 		=> '',		 		//Discount on Subtotal
 			'sales_tax' 	=> '',		 		//Sales Tax */
-			'gross_amount' 	=> 'amount', 			//Transaction Gross Amount
+			'amount' 		=> 'amount', 			//Transaction Gross Amount
 /* 			'trans_fee'		=> '',  	 		//Transaction Fee
 			'net_amount' 	=> '',		 		//Amount Collected After Fees */
 			'reference_id' 	=> 'invoice', 		
@@ -63,7 +63,7 @@ if( !class_exists( 'DataMap' ) ){
 			'email' 		=> 'billing_details_email',				//	
 			'phone' 		=> 'billing_details_phone',			//	
 			'on_behalf_of' 	=> 'on_behalf_of',	
-			'tp_user_id' => 'customer',
+			'tp_user_id'	=> 'customer',
 			
 			//email_address 	
 			
@@ -74,7 +74,7 @@ if( !class_exists( 'DataMap' ) ){
 		
 		//https://stripe.com/docs/api/customers/object
 		private $customer_data_map = [ //'nn_value' => '3rd_party_value'
-			'create_date' 	=> 'created',
+			'trans_date' 	=> 'created',
 			'trans_type' 	=> 'object',
 			'full_name' 	=> 'name',			//
 			'address' 		=> 'address_line1',	//	
@@ -94,7 +94,7 @@ if( !class_exists( 'DataMap' ) ){
 		//https://stripe.com/docs/api/invoices
 		private $invoice_data_map = [ //'nn_value' => '3rd_party_value'
 			'reference_id' => 'id', //
-			'create_date' 	=> 'created',
+			'trans_date' 	=> 'created',
 			'currency' 		=> 'currency',
 			'trans_status' 	=> 'status', // draft, open, paid, uncollectible, or void
 			'invoice_paid' => 'paid',
@@ -169,8 +169,8 @@ if( !class_exists( 'DataMap' ) ){
 			'cc_type' 		=> 'brand',	//paypal, visa, mastercard, etc. 
 			'cc_four' 		=> 'last4',	 //last4 of 
 			'cc_exp_month' 	=> 'exp_month', //expiration date. 
-			'cc_exp_year'	 => 'exp_year',		//expiration date. 
-			'tp_user_id' => 'customer'
+			'cc_exp_year'	=> 'exp_year',		//expiration date. 
+			'tp_user_id' 	=> 'customer'
 		
 		];
 		

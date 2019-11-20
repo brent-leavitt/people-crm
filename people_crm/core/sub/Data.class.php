@@ -55,16 +55,16 @@ if( !class_exists( 'Data' ) ){
 				'patron',
 				'issue_date',
 				'due_date', 		
-				'trans_descrip',		//Description of the Transaction
+				'trans_descrip',	//Description of the Transaction
 				'currency',			//Currency (only accepting USD)
 				'amount', 			//Transaction Gross Amount
 				'subtotal',		 	//Subtotal before taxes
-				'sales_tax',		 	//Sales Tax
-				'net_amount',		 	//Amount Collected After Fees
+				'sales_tax',		//Sales Tax
+				'net_amount',		//Amount Collected After Fees
 				'reference_ID',	 	//Reference ID
-				'reference_type',		//Reference Type
+				'reference_type',	//Reference Type
 				'tp_name', 			//ThirdParty Name, like "stripe" or PayPal 
-				'tp_id', 				//ThirdParty Transaction ID
+				'tp_id', 			//ThirdParty Transaction ID
 				'line_items',
 				'src_data',
 			);
@@ -106,7 +106,7 @@ if( !class_exists( 'Data' ) ){
 				'subtotal',
 				'sales_tax',
 				'net_amount',
-				'reference_ID',
+				'reference_id',
 				'reference_type',
 				'tp_name',
 				'tp_id',
@@ -122,9 +122,10 @@ if( !class_exists( 'Data' ) ){
 				'payee_country',		
 				'payee_email',		
 				'payee_phone',		
-				'payee_type',		
-				'payee_card',		
-				'payee_exp',		
+				'payee_cc_type',		
+				'payee_cc_four',		
+				'payee_cc_exp_mo',		
+				'payee_cc_exp_yr',		
 				'on_behalf_of',		
 				'src_data',
 			);
@@ -220,32 +221,44 @@ if( !class_exists( 'Data' ) ){
 			
 			//Now we start to build. 
 			foreach( $keys as $key ){
-				if( !empty( $data[ $key ] ) )
+				if( !empty( $data[ $key ] ) ){
 					$this->data_set[ $key ] = $data[ $key ];
-				elseif( !empty( $data[ 'data' ] ) ){
+					continue;
+				}
+				
+				if( !empty( $data[ 'data' ] ) && is_array( $data[ 'data' ] ) ){
 					//looking deeper into the source arrays for data that matches the requesting field.
 		
 					//first check if field is available in top level of nested array. 
 					if( !empty( $data[ 'data' ][ $key ] ) ){
 						$this->data_set[ $key ] = $data[ 'data' ][ $key ];
-						
-					} else {
-						
-						//else look deeper by referencing the first word of the key to find it's associated array.  
-						$pos = strpos( $key, '_'  );
-						$sub_arr = substr( $key, 0, $pos );
-						$sub_key = substr( $key, $pos );
-						$sub_val = $data[ 'data' ][ $sub_arr ][ $sub_key ] ?? '';
-
-						if( !empty( $sub_val ) )
-							$this->data_set[ $key ] = $sub_val;
-
+						continue;	
 					}
-				} else {
-					$this->data_set[ $key ] = '';
+									
+					//else look deeper by referencing the first word of the key to find it's associated array.  
+					$pos = strpos( $key, '_'  );
+					$sub_arr = substr( $key, 0, $pos );
 					
-				}
+					if( !isset( $data[ 'data' ][ $sub_arr ] ) )
+						continue;
+					 
+					if( is_array( $data[ 'data' ][ $sub_arr ] ) ){
+						$sub_key = substr( $key, $pos + 1 );					
+						$this->data_set[ $key ] = $data[ 'data' ][ $sub_arr ][ $sub_key ] ?? '';
+						continue;
+					}
+					
+				} 
+				
+				/* if( strcmp( $key, 'src_data' ) === 0 ){
+					$this->data_set[ 'src_data' ] = $data;
+					continue;
+				} */
+				
+				$this->data_set[ $key ] = '';
 			}	
+			
+			
 			//The final data set is specific to the initiating action being performed 
 			//$this->data_set = $this->$action();
 			

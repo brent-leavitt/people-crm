@@ -113,9 +113,9 @@ if( !class_exists( 'PostData' ) ){
 		
 		public function set_data( $data ){
 			
-			dump( __LINE__, __METHOD__, $data );
+			//dump( __LINE__, __METHOD__, $data );
 			
-			$data = array_merge( $data, $data[ 'data' ] );
+			/* $data = array_merge( $data, $data[ 'data' ] );
 			
 			foreach( $data[ 'payee' ] as  $pkey => $pval ){
 				$payee_key = 'payee_'.$pkey;
@@ -123,7 +123,7 @@ if( !class_exists( 'PostData' ) ){
 			}
 			
 			unset( $data[ 'data' ] );
-			unset( $data[ 'payee' ] );
+			unset( $data[ 'payee' ] ); */
 			
 			
 			foreach ( get_object_vars( $this ) as $key => $value ){

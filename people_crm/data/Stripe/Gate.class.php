@@ -122,6 +122,11 @@ if( !class_exists( 'Gate' ) ){
 			if( empty( $this->reference_id ) )
 				$this->reference_id = $data[ 'data' ][ 'reference_id' ];
 			
+			//Check if action needs to be updated. 
+			if( strcmp( $this->action, $data[ 'action' ] ) !== 0 )
+				$this->action = $data[ 'action' ];
+			
+			
 			/* $props = [ 'patron', 'service', 'token' ];
 			
 			foreach( $props as $prop ){ 

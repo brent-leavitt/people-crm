@@ -239,9 +239,9 @@ if( !class_exists( 'GateHandler' ) ){
 			
 			//Two arrays to check: the data array, and the nested payee array. 
 			$data_checks = [
-				'create_date',
+				'trans_date',
 				'currency',
-				'gross_amount',
+				'amount',
 				'payee',
 				'reference_id',
 				//'reference_type',

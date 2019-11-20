@@ -174,8 +174,8 @@ if( !class_exists( 'Action' ) ){
 			
 
 			if( $check = $data_set->valid ){
-				$this->data = $data_set->get();//Returns an array (not object)
-				//dump( __LINE__, __METHOD__, $this->data );
+				$this->data = $data_set->get(); //Returns an array (not object)
+				dump( __LINE__, __METHOD__, $this->data ); 
 			}		
 			return $check;
 
